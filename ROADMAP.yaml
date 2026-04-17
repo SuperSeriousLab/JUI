@@ -99,6 +99,14 @@ phases:
         done: false
       - name: "Integration tests: local and remote modes"
         done: false
+      - name: "[SECURITY] Auth model design gate — must be specified before Phase 3 impl starts"
+        done: false
+      - name: "[SECURITY] Unix socket: chmod 600 + peer UID validation on connect (reject non-owner)"
+        done: false
+      - name: "[SECURITY] TCP transport: token auth (bearer) minimum; mTLS preferred — no unauthenticated TCP binding"
+        done: false
+      - name: "[SECURITY] FRANK attach point: same auth gate as Transport — agents must present token to attach"
+        done: false
 
   - id: phase-4
     name: "Phase 4: eidos Julia Registry Publish"
