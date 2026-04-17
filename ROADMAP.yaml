@@ -113,6 +113,8 @@ phases:
         done: false
       - name: "[SECURITY] Auth model design gate — must be specified before Phase 3 impl starts"
         done: true
+      - name: "[SECURITY chunk-1] Auth module infrastructure: src/auth/ (paths, peer, token, AuthGate, tls-stub) + 39 tests (2026-04-17)"
+        done: true
       - name: "[SECURITY] Unix socket: chmod 600 + peer UID validation on connect (reject non-owner)"
         done: false
       - name: "[SECURITY] TCP transport: token auth (bearer) minimum; mTLS preferred — no unauthenticated TCP binding"

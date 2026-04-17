@@ -14,6 +14,7 @@ include("events.jl")
 include("wire.jl")              # after events.jl: InputEvent wire types need KeyEvent/MouseEvent
 include("session.jl")           # after wire.jl: Session holds Buffer; SessionID uses randstring
 include("frank_hooks.jl")       # Phase 2c: @inline no-op stubs; overridden by JUIFRANKExt when FRANK is loaded
+include("auth/auth.jl")         # Phase 3 chunk 1: auth module (XDG paths, peer UID, token, AuthGate)
 include("protocol.jl")          # after session.jl + wire.jl: snapshot/diff/input helpers
 include("scripting.jl")
 include("async.jl")
@@ -225,7 +226,13 @@ export # Core types
        # .tach format
        write_tach, load_tach, compress_dead_space,
        # Agent attach API (FRANK-present path; stubs raise error when FRANK absent)
-       attach_agent, detach_agent!
+       attach_agent, detach_agent!,
+       # Auth module (Phase 3 chunk 1)
+       AuthGate, UnixPeerGate, TCPTokenGate, authorize,
+       jui_runtime_dir, socket_path, token_path, ensure_secure_file, getuid,
+       peer_uid, check_peer_uid,
+       generate_token, write_token, load_token, compare_tokens_ct,
+       ensure_server_cert, spki_verify
 
 # ── Precompilation workload ──────────────────────────────────────────
 @compile_workload begin
