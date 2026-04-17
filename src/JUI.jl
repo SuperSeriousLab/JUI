@@ -12,6 +12,8 @@ include("terminal.jl")
 include("pty.jl")
 include("events.jl")
 include("wire.jl")              # after events.jl: InputEvent wire types need KeyEvent/MouseEvent
+include("session.jl")           # after wire.jl: Session holds Buffer; SessionID uses randstring
+include("protocol.jl")          # after session.jl + wire.jl: snapshot/diff/input helpers
 include("scripting.jl")
 include("async.jl")
 include("resizable_layout.jl")
@@ -73,6 +75,11 @@ export # Core types
        # Wire protocol (Phase 2a)
        wire_encode, wire_decode,
        WireResizeEvent, encode_input, decode_input,
+       # Session registry (Phase 2a)
+       SessionID, Session,
+       new_session, get_session, close_session!, touch!, list_sessions,
+       # Snapshot/diff/input protocol (Phase 2a)
+       snapshot_message, diff_message, apply_snapshot, apply_diff!, input_message,
        # Async tasks
        TaskEvent, TaskQueue, CancelToken,
        spawn_task!, spawn_timer!, drain_tasks!,
