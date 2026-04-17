@@ -1,5 +1,11 @@
 project: JUI
 description: "AI-first Julia TUI framework — hard fork of Tachikoma.jl substrate + ET always-on, FRANK orthogonal diagnostics. Single build: Unix socket (local) + TCP (remote), zero mode switch."
+design_note: |
+  Server-authoritative architecture (ET/mosh/tmux pattern). Widgets live
+  server-side only. Client = cell renderer + keystroke pipe. Wire carries
+  Buffer snapshot + cell diffs down, InputEvents up. No widget serialization.
+  Decided 2026-04-17 after Opus consult — rejected Elm-import of "pure AppState
+  struct" as architectural misfit with Tachikoma's stateful-widget design.
 
 phases:
   - id: phase-1
@@ -25,21 +31,25 @@ phases:
         done: true
 
   - id: phase-2a
-    name: "Phase 2a: AppState Pure Struct (Prerequisite for ET + Optional FRANK)"
+    name: "Phase 2a: Wire Protocol — Serializable Buffer + Input Events"
     status: not-started
     depends_on: [phase-1]
     items:
-      - name: "Extract AppState as pure data struct (zero IO, serializable) — on top of Tachikoma Model substrate"
+      - name: "Serializable Buffer wire format (JSON3 StructType or msgpack, ~20 LOC — Buffer is already pure Cell grid)"
         done: false
-      - name: "All component state moved into AppState fields"
+      - name: "Serializable InputEvent types (KeyEvent, MouseEvent, Resize)"
         done: false
-      - name: "AppState is the load-bearing prerequisite for ET-transport and FRANK"
+      - name: "Session registry: SessionID → server-side App instance + last Buffer"
         done: false
-      - name: "Full serde support (JSON marshaling for ET snapshots)"
+      - name: "Snapshot-on-attach + cell-diff-stream protocol spec"
+        done: false
+      - name: "Server-authoritative model: widgets never leave server, client holds zero widget state"
+        done: false
+      - name: "Round-trip test: local client sends key → server processes → new Buffer diff → client renders"
         done: false
 
   - id: phase-2b
-    name: "Phase 2b: Renderer Decoupled (Testable Output)"
+    name: "Phase 2b: Renderer Decoupled + Predictive Local Echo"
     status: not-started
     depends_on: [phase-2a]
     items:
@@ -47,9 +57,11 @@ phases:
         done: false
       - name: "Kill all print(stdout, ...) direct calls"
         done: false
-      - name: "render_screen!(writer, state) → pure rendering, testable diffs"
+      - name: "Pure rendering: render(widget, rect, buf) already matches — verify no IO leakage"
         done: false
-      - name: "Tests verify output without side effects"
+      - name: "Predictive local echo for TextInput (mosh-style) — WAN latency optimization"
+        done: false
+      - name: "Tests verify output without TTY side effects"
         done: false
 
   - id: phase-2c

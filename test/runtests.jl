@@ -10,6 +10,7 @@ const T = JUI
 struct _DummyModel <: T.Model end
 
 @testset "JUI" begin
+    include("wire_test.jl")
     include("test_core.jl")
     include("test_events.jl")
     include("test_colors.jl")

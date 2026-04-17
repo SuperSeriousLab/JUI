@@ -6,6 +6,7 @@ using FileWatching: poll_fd
 
 include("style.jl")
 include("buffer.jl")
+include("wire.jl")
 include("layout.jl")
 include("cast_recorder.jl")     # CastRecorder struct (before terminal.jl)
 include("terminal.jl")
@@ -69,6 +70,8 @@ export # Core types
        tty_path,
        prepare_for_exec!,
        clipboard_copy!, buffer_to_text,
+       # Wire protocol (Phase 2a)
+       wire_encode, wire_decode,
        # Async tasks
        TaskEvent, TaskQueue, CancelToken,
        spawn_task!, spawn_timer!, drain_tasks!,
