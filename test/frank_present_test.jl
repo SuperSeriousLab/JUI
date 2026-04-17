@@ -206,4 +206,32 @@ const _ext = Base.get_extension(JUI, :JUIFRANKExt)
         end
     end
 
+    # ── attach_agent: per-session filter ─────────────────────────────────
+    @testset "attach_agent present — per-session filter" begin
+        with_capture() do _io
+            events = []
+
+            s1 = T.new_session("attach_agent_s1")
+            s2 = T.new_session("attach_agent_s2")
+
+            sid = JUI.attach_agent(s1.id, evt -> push!(events, evt))
+
+            # Close s1 → triggers frank_session_closed with session_id = s1.id.id
+            T.close_session!(s1.id)
+
+            # Close s2 → should NOT be captured by s1's subscription
+            T.close_session!(s2.id)
+
+            sleep(0.05)  # let any async callbacks flush
+
+            # Only s1 events should be in events
+            @test length(events) >= 1
+            @test all(e -> e["state"]["session_id"] == s1.id.id, events)
+
+            # detach_agent! handshake
+            @test JUI.detach_agent!(sid) == true
+            @test JUI.detach_agent!(sid) == false  # second call returns false
+        end
+    end
+
 end

@@ -33,3 +33,27 @@
 @inline frank_input_received(::Any, ::Any) = nothing   # session, event
 @inline frank_snapshot_sent(::Any, ::Any) = nothing    # session, buffer
 @inline frank_diff_emitted(::Any, ::Any) = nothing     # session, cell_count
+
+# ── Agent attach API stubs ────────────────────────────────────────────────
+# These raise informative errors in the FRANK-absent path.
+# JUIFRANKExt overrides them with real FRANK.subscribe/unsubscribe! calls.
+
+"""
+    attach_agent(session_id, callback) → SubscriptionID
+
+Subscribe to FRANK events for `session_id`. Requires FRANK to be loaded.
+"""
+function attach_agent(session_id, callback::Function)
+    error("FRANK not loaded — agent attach unavailable. " *
+          "Install FRANK package or use Pkg.develop(path=\"../FRANK\").")
+end
+
+"""
+    detach_agent!(sid) → Bool
+
+Remove an agent subscription by ID. Requires FRANK to be loaded.
+"""
+function detach_agent!(sid)
+    error("FRANK not loaded — agent attach unavailable. " *
+          "Install FRANK package or use Pkg.develop(path=\"../FRANK\").")
+end

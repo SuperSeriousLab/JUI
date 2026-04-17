@@ -27,6 +27,12 @@
         @test JUI.frank_diff_emitted(nothing, nothing) === nothing
     end
 
+    # ── Agent attach stubs raise informative errors ───────────────────────
+    @testset "attach_agent absent" begin
+        @test_throws ErrorException JUI.attach_agent(T.SessionID("x"), _ -> nothing)
+        @test_throws ErrorException JUI.detach_agent!(nothing)
+    end
+
     # ── Zero allocation guarantee on stub hooks ───────────────────────────
     @testset "stub hooks allocate nothing" begin
         @test @allocated(JUI.frank_session_created(nothing)) == 0

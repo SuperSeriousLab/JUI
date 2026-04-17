@@ -98,4 +98,35 @@ function JUI.frank_diff_emitted(session, cell_count)
     return nothing
 end
 
+# ── Agent attach API ──────────────────────────────────────────────────────
+
+"""
+    JUI.attach_agent(session_id, callback) → FRANK.SubscriptionID
+
+Subscribe to FRANK events filtered to the given SessionID.
+`callback(event_dict)` is called for every FRANK event where
+`state["session_id"] == session_id.id`.
+
+Returns a `FRANK.SubscriptionID` for use with `JUI.detach_agent!`.
+Only available when FRANK is loaded.
+"""
+function JUI.attach_agent(session_id, callback::Function)
+    emitter = _emitter()
+    filter_fn = (component, event_type, state) ->
+        haskey(state, "session_id") && state["session_id"] == session_id.id
+    return FRANK.subscribe(emitter, filter_fn, callback)
+end
+
+"""
+    JUI.detach_agent!(sid) → Bool
+
+Remove the agent subscription identified by `sid`.
+Returns `true` if the subscription was found and removed, `false` if already gone.
+Only available when FRANK is loaded.
+"""
+function JUI.detach_agent!(sid)
+    emitter = _emitter()
+    return FRANK.unsubscribe!(emitter, sid)
+end
+
 end # module

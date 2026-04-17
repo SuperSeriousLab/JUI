@@ -82,7 +82,7 @@ phases:
       - name: "Session lifecycle events emit FRANK JSONL when FRANK is loaded: session_create, session_close, input_received, diff_emitted, snapshot_sent"
         done: true
       - name: "Agent attach API: third-party agent can subscribe to FRANK event stream for a given SessionID"
-        done: false
+        done: true
       - name: "Event schema: FRANK v0.1 JSON schema extended with JUI-specific event types"
         done: false
       - name: "Tests: FRANK-loaded path (events emit correctly) + FRANK-absent path (zero mentions, no errors)"

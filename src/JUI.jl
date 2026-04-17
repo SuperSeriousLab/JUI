@@ -223,7 +223,9 @@ export # Core types
        # ANSI text
        parse_ansi, ansi_enabled, set_ansi_enabled!,
        # .tach format
-       write_tach, load_tach, compress_dead_space
+       write_tach, load_tach, compress_dead_space,
+       # Agent attach API (FRANK-present path; stubs raise error when FRANK absent)
+       attach_agent, detach_agent!
 
 # ── Precompilation workload ──────────────────────────────────────────
 @compile_workload begin
