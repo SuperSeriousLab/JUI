@@ -1,5 +1,5 @@
 project: JUI
-description: "AI-first Julia TUI framework — agent-debuggable by construction. FRANK debug protocol emits live component state to stderr JSONL."
+description: "AI-first Julia TUI framework — ET always-on, FRANK orthogonal diagnostics. Single build: Unix socket (local) + TCP (remote), zero mode switch."
 
 phases:
   - id: phase-1
@@ -23,19 +23,47 @@ phases:
         done: true
       - name: "Forgejo repo created (http://192.168.14.77:3000/eidos/JUI)"
         done: true
-      - name: "TECH DEBT: FRANK is a hard dependency — remove Igor-specific concepts from component API"
-        done: false
+      - name: "TECH DEBT: Igor-specific fields in StatusBar (wiq_score, confidence) — mark for Phase 2c"
+        done: true
 
-  - id: phase-2
-    name: "Phase 2: Generalize Primitives + Optional FRANK"
+  - id: phase-2a
+    name: "Phase 2a: AppState Pure Struct (Prerequisite for ET + Optional FRANK)"
     status: not-started
     depends_on: [phase-1]
     items:
-      - name: "Remove Igor/WIQ/IgorBrain-specific fields from StatusBar (wiq_score, confidence)"
+      - name: "Extract AppState as pure data struct (zero IO, serializable)"
+        done: false
+      - name: "All component state moved into AppState fields"
+        done: false
+      - name: "AppState is the load-bearing prerequisite for ET-transport and FRANK"
+        done: false
+      - name: "Full serde support (JSON marshaling for ET snapshots)"
+        done: false
+
+  - id: phase-2b
+    name: "Phase 2b: Renderer Decoupled (Testable Output)"
+    status: not-started
+    depends_on: [phase-2a]
+    items:
+      - name: "Renderer takes Writer parameter instead of hardcoded stdout"
+        done: false
+      - name: "Kill all print(stdout, ...) direct calls (~15 sites)"
+        done: false
+      - name: "render_screen!(writer, state) → pure rendering, testable diffs"
+        done: false
+      - name: "Tests verify output without side effects"
+        done: false
+
+  - id: phase-2c
+    name: "Phase 2c: Generalize Components + FRANK Optional"
+    status: not-started
+    depends_on: [phase-2b]
+    items:
+      - name: "Remove Igor-specific fields from StatusBar (wiq_score, confidence, model → generic)"
         done: false
       - name: "Generic StatusBar: key-value pairs, caller defines fields"
         done: false
-      - name: "Make FRANK a weak dependency (Requires.jl or Julia extension mechanism)"
+      - name: "Make FRANK a weak/optional dependency (Julia ext mechanism)"
         done: false
       - name: "JUI works fully with zero FRANK present (no debug events, no crash)"
         done: false
@@ -45,25 +73,47 @@ phases:
         done: false
       - name: "Layout engine: configurable proportions (not hardcoded 30/70 split)"
         done: false
-      - name: "Unit tests for all components (no Igor deps)"
-        done: false
       - name: "run! callback API: caller provides on_input handler, not hardcoded echo"
+        done: false
+      - name: "Unit tests for all components (no Igor deps)"
         done: false
 
   - id: phase-3
-    name: "Phase 3: eidos Julia Registry Publish"
+    name: "Phase 3: ET-Transport (Unix Socket Local + TCP Remote, Single Build)"
     status: not-started
-    depends_on: [phase-2]
+    depends_on: [phase-2c]
+    items:
+      - name: "ET-transport always ON — single build, no mode switch"
+        done: false
+      - name: "Transport abstraction: Unix socket for local, TCP for remote"
+        done: false
+      - name: "SessionID + AppState snapshot on connect (framebuffer diff for reconnect)"
+        done: false
+      - name: "Event-replay optional (framebuffer diff preferred for ET)"
+        done: false
+      - name: "run!() spawns server + local client automatically"
+        done: false
+      - name: "Remote: swap Transport URL, user API identical"
+        done: false
+      - name: "Zero overhead for local (Unix socket vs stdlib TCPSocket comparison)"
+        done: false
+      - name: "Integration tests: local and remote modes"
+        done: false
+
+  - id: phase-4
+    name: "Phase 4: eidos Julia Registry Publish"
+    status: not-started
+    depends_on: [phase-3]
     items:
       - name: "Register FRANK package in eidos Forgejo Julia registry"
         done: false
       - name: "Register JUI package in eidos Forgejo Julia registry"
         done: false
-      - name: "Update Project.toml registry entry"
+      - name: "Update Project.toml registry entries"
         done: false
-      - name: "Usage docs: quick-start example app"
+      - name: "Usage docs: quick-start example app with ET sessions"
         done: false
-      - name: "CHANGELOG.md for v0.1 → v0.2"
+      - name: "CHANGELOG.md v0.1 → v0.4"
         done: false
-      - name: "Validate: Igor and any future consumers install via registry (not path deps)"
+      - name: "Validate: Igor and future consumers install via registry (not path deps)"
         done: false
