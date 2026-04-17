@@ -1,0 +1,32 @@
+# Julia
+Manifest.toml
+*.jl.cov
+*.jl.mem
+deps/
+.julia/
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.pem
+*.key
+
+# Build
+/build/
+/dist/
+
+# FRANK debug output
+frank.jsonl
+Manifest.toml
