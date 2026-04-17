@@ -70,7 +70,7 @@ phases:
 
   - id: phase-2c
     name: "Phase 2c: FRANK Optional Weak Dep + Agent Attach Hooks"
-    status: in-progress
+    status: completed
     depends_on: [phase-2b]
     items:
       - name: "FRANK is a separate Forgejo repo (eidos/FRANK) — prerequisite"
@@ -84,11 +84,11 @@ phases:
       - name: "Agent attach API: third-party agent can subscribe to FRANK event stream for a given SessionID"
         done: true
       - name: "Event schema: FRANK v0.1 JSON schema extended with JUI-specific event types"
-        done: false
+        done: true
       - name: "Tests: FRANK-loaded path (events emit correctly) + FRANK-absent path (zero mentions, no errors)"
         done: true
       - name: "Docs: how to enable FRANK in a JUI consumer app (1-page integration guide)"
-        done: false
+        done: true
 
   - id: phase-3
     name: "Phase 3: ET-Transport (Unix Socket Local + TCP Remote, Single Build)"
