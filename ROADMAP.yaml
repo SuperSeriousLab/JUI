@@ -1,0 +1,69 @@
+project: JUI
+description: "AI-first Julia TUI framework — agent-debuggable by construction. FRANK debug protocol emits live component state to stderr JSONL."
+
+phases:
+  - id: phase-1
+    name: "Phase 1: Extracted from Igor — Standalone Scaffold"
+    status: completed
+    depends_on: []
+    items:
+      - name: "Extract JUI from Igor monorepo"
+        done: true
+      - name: "Project scaffold (CLAUDE.md, ROADMAP.yaml, README.md)"
+        done: true
+      - name: "4 core components: InputComponent, OutputComponent, StatusBar, HistoryPanel"
+        done: true
+      - name: "App struct + render_screen! full-layout composer"
+        done: true
+      - name: "ANSI 256-color palette + box-drawing primitives"
+        done: true
+      - name: "FRANK integration: all state changes emit events"
+        done: true
+      - name: "Main event loop (run!)"
+        done: true
+      - name: "Forgejo repo created (http://192.168.14.77:3000/eidos/JUI)"
+        done: true
+      - name: "TECH DEBT: FRANK is a hard dependency — remove Igor-specific concepts from component API"
+        done: false
+
+  - id: phase-2
+    name: "Phase 2: Generalize Primitives + Optional FRANK"
+    status: not-started
+    depends_on: [phase-1]
+    items:
+      - name: "Remove Igor/WIQ/IgorBrain-specific fields from StatusBar (wiq_score, confidence)"
+        done: false
+      - name: "Generic StatusBar: key-value pairs, caller defines fields"
+        done: false
+      - name: "Make FRANK a weak dependency (Requires.jl or Julia extension mechanism)"
+        done: false
+      - name: "JUI works fully with zero FRANK present (no debug events, no crash)"
+        done: false
+      - name: "Generic prompt string (not hardcoded 'igor>')"
+        done: false
+      - name: "Component registry: allow callers to add custom components"
+        done: false
+      - name: "Layout engine: configurable proportions (not hardcoded 30/70 split)"
+        done: false
+      - name: "Unit tests for all components (no Igor deps)"
+        done: false
+      - name: "run! callback API: caller provides on_input handler, not hardcoded echo"
+        done: false
+
+  - id: phase-3
+    name: "Phase 3: eidos Julia Registry Publish"
+    status: not-started
+    depends_on: [phase-2]
+    items:
+      - name: "Register FRANK package in eidos Forgejo Julia registry"
+        done: false
+      - name: "Register JUI package in eidos Forgejo Julia registry"
+        done: false
+      - name: "Update Project.toml registry entry"
+        done: false
+      - name: "Usage docs: quick-start example app"
+        done: false
+      - name: "CHANGELOG.md for v0.1 → v0.2"
+        done: false
+      - name: "Validate: Igor and any future consumers install via registry (not path deps)"
+        done: false

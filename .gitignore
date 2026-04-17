@@ -20,8 +20,11 @@ Thumbs.db
 
 # Secrets
 .env
+.env.local
 *.pem
 *.key
+keystore.*
+credentials.json
 
 # Build
 /build/
@@ -29,4 +32,13 @@ Thumbs.db
 
 # FRANK debug output
 frank.jsonl
-Manifest.toml
+
+# IDE / editor
+*.swp
+*.swo
+*~
+
+# Claude Code local state
+.claude/
+!.claude/hooks/
+!.claude/skills/
