@@ -7,6 +7,10 @@ design_note: |
   Decided 2026-04-17 after Opus consult — rejected Elm-import of "pure AppState
   struct" as architectural misfit with Tachikoma's stateful-widget design.
 
+phase-2b_note: |
+  Phase 2b closed 2026-04-17 after audit. Renderer was already decoupled
+  by Tachikoma's design. Predictive local echo deferred to post-Phase 3.
+
 phases:
   - id: phase-1
     name: "Phase 1: Tachikoma.jl Hard Fork — Baseline Substrate"
@@ -49,20 +53,20 @@ phases:
         done: true
 
   - id: phase-2b
-    name: "Phase 2b: Renderer Decoupled + Predictive Local Echo"
-    status: not-started
+    name: "Phase 2b: Renderer Decoupling (verified complete via Tachikoma fork)"
+    status: completed
     depends_on: [phase-2a]
     items:
-      - name: "Renderer takes Writer parameter instead of hardcoded stdout"
-        done: false
-      - name: "Kill all print(stdout, ...) direct calls"
-        done: false
-      - name: "Pure rendering: render(widget, rect, buf) already matches — verify no IO leakage"
-        done: false
-      - name: "Predictive local echo for TextInput (mosh-style) — WAN latency optimization"
-        done: false
-      - name: "Tests verify output without TTY side effects"
-        done: false
+      - name: "Renderer accepts Writer parameter (flush!(terminal, io::IO)) — inherited from Tachikoma"
+        done: true
+      - name: "Zero stdout calls in render path — verified by audit; 2 stdout refs in _detect_cell_pixels_escape! are intentional TTY capability probe exceptions"
+        done: true
+      - name: "Widget render() methods write to pure Buffer, no IO side effects — inherited from Tachikoma"
+        done: true
+      - name: "TestBackend enables TTY-free testing — 30+ call sites in existing test suite"
+        done: true
+      - name: "Predictive local echo (mosh-style) DEFERRED to post-Phase-3 — optimization requires real WAN latency measurement from ET-transport"
+        done: true
 
   - id: phase-2c
     name: "Phase 2c: FRANK Instrumentation Integration + Agent Attach Hooks"
