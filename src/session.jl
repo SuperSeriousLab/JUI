@@ -87,6 +87,7 @@ function new_session(app)::Session
     lock(SESSIONS_LOCK) do
         SESSIONS[id] = s
     end
+    frank_session_created(s)
     s
 end
 
@@ -109,11 +110,13 @@ Remove the session from the registry. Returns `true` if the session existed
 and was removed, `false` if it was not found. Thread-safe.
 """
 function close_session!(id::SessionID)::Bool
-    lock(SESSIONS_LOCK) do
+    removed = lock(SESSIONS_LOCK) do
         haskey(SESSIONS, id) || return false
         delete!(SESSIONS, id)
         true
     end
+    removed && frank_session_closed(id)
+    removed
 end
 
 """

@@ -13,6 +13,7 @@ include("pty.jl")
 include("events.jl")
 include("wire.jl")              # after events.jl: InputEvent wire types need KeyEvent/MouseEvent
 include("session.jl")           # after wire.jl: Session holds Buffer; SessionID uses randstring
+include("frank_hooks.jl")       # Phase 2c: @inline no-op stubs; overridden by JUIFRANKExt when FRANK is loaded
 include("protocol.jl")          # after session.jl + wire.jl: snapshot/diff/input helpers
 include("scripting.jl")
 include("async.jl")

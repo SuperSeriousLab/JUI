@@ -14,6 +14,7 @@ struct _DummyModel <: T.Model end
     include("session_test.jl")
     include("protocol_test.jl")
     include("integration_test.jl")
+    include("frank_absent_test.jl")
     include("test_core.jl")
     include("test_events.jl")
     include("test_colors.jl")

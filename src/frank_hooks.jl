@@ -1,0 +1,35 @@
+# Copyright 2026 eidos workspace
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ── frank_hooks.jl ───────────────────────────────────────────────────────
+# Phase 2c: Stub hooks for FRANK optional weak dependency.
+#
+# When FRANK is NOT loaded these stubs are called. They are @inline no-ops
+# that return nothing — zero allocation, zero overhead in the hot path.
+#
+# When FRANK IS loaded, ext/JUIFRANKExt.jl overrides each of these with a
+# real implementation that emits a FRANK JSONL event to stderr.
+#
+# These functions are NOT exported from JUI but ARE accessible as
+# JUI.frank_session_created etc. so the extension module can override them.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Stub hooks — overridden by ext/JUIFRANKExt.jl when FRANK is loaded.
+# All stubs are @inline no-ops. Zero overhead in FRANK-absent path.
+
+@inline frank_session_created(::Any) = nothing
+@inline frank_session_closed(::Any) = nothing
+@inline frank_input_received(::Any, ::Any) = nothing   # session, event
+@inline frank_snapshot_sent(::Any, ::Any) = nothing    # session, buffer
+@inline frank_diff_emitted(::Any, ::Any) = nothing     # session, cell_count

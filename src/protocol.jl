@@ -102,6 +102,7 @@ function snapshot_message(session::Session)::String
                              "render a frame into the session before calling this, " *
                              "or use diff_message which handles this case.")
     msg = WireSnapshotMessage("snapshot", session.id.id, WireBuffer(buf))
+    frank_snapshot_sent(session, buf)
     JSON3.write(msg)
 end
 
@@ -127,6 +128,7 @@ function diff_message(session::Session, new_buffer::Buffer)::String
     if session.last_buffer === nothing
         # No base: ship a full snapshot
         session.last_buffer = new_buffer
+        frank_snapshot_sent(session, new_buffer)
         msg = WireSnapshotMessage("snapshot", sid, WireBuffer(new_buffer))
         return JSON3.write(msg)
     end
@@ -144,6 +146,7 @@ function diff_message(session::Session, new_buffer::Buffer)::String
     end
 
     session.last_buffer = new_buffer
+    frank_diff_emitted(session, length(cells))
     msg = WireDiffMessage("diff", sid, cells)
     JSON3.write(msg)
 end
@@ -162,6 +165,7 @@ Wire format:
     {"type":"input","session_id":"<hex>","event":"<JSON-escaped inner event>"}
 """
 function input_message(session::Session, evt)::String
+    frank_input_received(session, evt)
     msg = WireInputMessage("input", session.id.id, encode_input(evt))
     JSON3.write(msg)
 end
