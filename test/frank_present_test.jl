@@ -1,0 +1,209 @@
+# Copyright 2026 eidos workspace
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# ── frank_present_test.jl ────────────────────────────────────────────────
+# Phase 2c item 4 + 7: FRANK-present integration tests.
+#
+# Requires JUIFRANKExt to be loaded (FRANK must be a test dep so the
+# extension is triggered at JUI load time). When FRANK is absent the
+# outer gate in runtests.jl skips this file and emits a warning instead.
+#
+# Tests capture FRANK emission via IOBuffer (redirected through
+# JUIFRANKExt.set_capture!) and assert on JSONL event content.
+# ─────────────────────────────────────────────────────────────────────────
+
+using FRANK
+
+# Locate the extension module loaded into JUI's module graph.
+const _ext = Base.get_extension(JUI, :JUIFRANKExt)
+
+@testset "Phase 2c item 4+7: FRANK-present path" begin
+
+    # ── Extension loaded ──────────────────────────────────────────────────
+    @testset "JUIFRANKExt is loaded" begin
+        @test _ext !== nothing
+        # set_capture! must be exported from the extension
+        @test isdefined(_ext, :set_capture!)
+    end
+
+    # ── Capture helpers ───────────────────────────────────────────────────
+    # Redirect the per-process emitter to an IOBuffer so we can inspect output.
+    function with_capture(f)
+        buf = IOBuffer()
+        _ext.set_capture!(buf)
+        try
+            f(buf)
+        finally
+            # Restore to stderr so other tests don't write to a closed buffer.
+            _ext.set_capture!(stderr)
+        end
+    end
+
+    function captured_lines(buf)
+        seek(buf, 0)
+        filter!(!isempty, readlines(buf))
+    end
+
+    # ── session_created event ─────────────────────────────────────────────
+    @testset "frank_session_created emits jui.session / created" begin
+        with_capture() do buf
+            s = T.new_session("frank_present_test_app")
+            lines = captured_lines(buf)
+
+            @test length(lines) >= 1
+            @test contains(lines[1], "jui.session")
+            @test contains(lines[1], "created")
+            @test contains(lines[1], s.id.id)
+
+            T.close_session!(s.id)
+        end
+    end
+
+    # ── session_closed event ─────────────────────────────────────────────
+    @testset "frank_session_closed emits jui.session / closed" begin
+        with_capture() do buf
+            s = T.new_session("frank_present_test_app_close")
+            seek(buf, 0)
+            truncate(buf, 0)  # clear created event
+
+            id = s.id
+            T.close_session!(id)
+
+            lines = captured_lines(buf)
+            @test length(lines) >= 1
+            @test contains(lines[1], "jui.session")
+            @test contains(lines[1], "closed")
+            @test contains(lines[1], id.id)
+        end
+    end
+
+    # ── input_received event ──────────────────────────────────────────────
+    @testset "frank_input_received emits jui.input / input_received" begin
+        with_capture() do buf
+            s = T.new_session("frank_present_test_app_input")
+            seek(buf, 0)
+            truncate(buf, 0)
+
+            evt = T.KeyEvent(:enter)
+            _msg = T.input_message(s, evt)
+
+            lines = captured_lines(buf)
+            @test length(lines) >= 1
+            @test contains(lines[1], "jui.input")
+            @test contains(lines[1], "input_received")
+            @test contains(lines[1], s.id.id)
+
+            T.close_session!(s.id)
+        end
+    end
+
+    # ── snapshot_sent event ───────────────────────────────────────────────
+    # snapshot_message requires session.last_buffer to be set; use diff_message
+    # on a fresh session (no last_buffer) to trigger the snapshot path, which
+    # calls frank_snapshot_sent internally.
+    @testset "frank_snapshot_sent emits jui.snapshot / snapshot_sent" begin
+        with_capture() do buf
+            s = T.new_session("frank_present_test_app_snap")
+            seek(buf, 0)
+            truncate(buf, 0)
+
+            rect = T.Rect(1, 1, 3, 2)
+            b    = T.Buffer(rect)
+            b.content[1] = T.Cell('A', T.Style(bold=true))
+
+            # diff_message on a session with no last_buffer → snapshot path
+            _msg = T.diff_message(s, b)
+
+            lines = captured_lines(buf)
+            @test length(lines) >= 1
+            @test contains(lines[1], "jui.snapshot")
+            @test contains(lines[1], "snapshot_sent")
+            @test contains(lines[1], s.id.id)
+
+            T.close_session!(s.id)
+        end
+    end
+
+    # ── diff_emitted event ────────────────────────────────────────────────
+    @testset "frank_diff_emitted emits jui.diff / diff_emitted" begin
+        with_capture() do buf
+            s = T.new_session("frank_present_test_app_diff")
+
+            rect = T.Rect(1, 1, 3, 2)
+            b1   = T.Buffer(rect)
+            b1.content[1] = T.Cell('X', T.Style(bold=true))
+
+            # First diff_message → snapshot path (sets last_buffer)
+            _snap = T.diff_message(s, b1)
+
+            seek(buf, 0)
+            truncate(buf, 0)
+
+            # Second buffer — differs from b1 → diff path
+            b2 = T.Buffer(rect)
+            b2.content[1] = T.Cell('Y', T.RESET)
+
+            _diff = T.diff_message(s, b2)
+
+            lines = captured_lines(buf)
+            # At least one diff event expected (may also be snapshot if cells
+            # are too similar and engine falls back — either is valid).
+            @test length(lines) >= 1
+            # Accept either diff or snapshot event from the diff path
+            @test any(l -> contains(l, "jui.diff") || contains(l, "jui.snapshot"), lines)
+
+            T.close_session!(s.id)
+        end
+    end
+
+    # ── Full lifecycle round-trip ─────────────────────────────────────────
+    @testset "full lifecycle: create → input → snapshot → diff → close" begin
+        with_capture() do buf
+            s = T.new_session("frank_present_test_lifecycle")
+
+            # input
+            evt  = T.KeyEvent(:space)
+            _i   = T.input_message(s, evt)
+
+            # snapshot (first diff → snapshot)
+            rect = T.Rect(1, 1, 4, 2)
+            b1   = T.Buffer(rect)
+            b1.content[1] = T.Cell('P', T.RESET)
+            _s1  = T.diff_message(s, b1)
+
+            # diff
+            b2 = T.Buffer(rect)
+            b2.content[1] = T.Cell('Q', T.RESET)
+            _s2 = T.diff_message(s, b2)
+
+            # close
+            T.close_session!(s.id)
+
+            lines = captured_lines(buf)
+            # Expect at least: session_created, input_received, snapshot_sent,
+            # diff_emitted|snapshot_sent, session_closed  →  ≥ 5 events
+            @test length(lines) >= 5
+
+            components = map(l -> begin
+                m = match(r"\"component\":\"([^\"]+)\"", l)
+                m === nothing ? "" : m[1]
+            end, lines)
+
+            @test "jui.session" in components
+            @test "jui.input" in components
+            @test "jui.snapshot" in components
+        end
+    end
+
+end

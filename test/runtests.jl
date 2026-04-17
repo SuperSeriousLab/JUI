@@ -15,6 +15,11 @@ struct _DummyModel <: T.Model end
     include("protocol_test.jl")
     include("integration_test.jl")
     include("frank_absent_test.jl")
+    if Base.find_package("FRANK") !== nothing
+        include("frank_present_test.jl")
+    else
+        @warn "FRANK not in test env — skipping FRANK-present tests (items 4+7). Add FRANK to test/Project.toml to enable."
+    end
     include("test_core.jl")
     include("test_events.jl")
     include("test_colors.jl")

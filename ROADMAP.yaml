@@ -80,7 +80,7 @@ phases:
       - name: "JUI works identically when FRANK is NOT loaded (no crash, no no-op overhead in hot path)"
         done: true
       - name: "Session lifecycle events emit FRANK JSONL when FRANK is loaded: session_create, session_close, input_received, diff_emitted, snapshot_sent"
-        done: false
+        done: true
       - name: "Agent attach API: third-party agent can subscribe to FRANK event stream for a given SessionID"
         done: false
       - name: "Event schema: FRANK v0.1 JSON schema extended with JUI-specific event types"

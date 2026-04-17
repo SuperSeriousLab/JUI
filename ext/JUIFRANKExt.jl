@@ -25,6 +25,8 @@
 #   julia --project=. -e 'using Pkg; Pkg.develop(path="../FRANK")'
 # ─────────────────────────────────────────────────────────────────────────
 
+__precompile__(false)
+
 module JUIFRANKExt
 
 using JUI
@@ -41,6 +43,18 @@ end
 function _emitter()
     e = EMITTER[]
     e === nothing ? FrankEmitter() : e
+end
+
+"""
+    set_capture!(io::IO)
+
+Redirect FRANK emission to `io` (e.g. an IOBuffer in tests).
+Returns the new FrankEmitter so callers can inspect it.
+Backward-compatible: the default emitter writes to stderr.
+"""
+function set_capture!(io::IO)
+    EMITTER[] = FrankEmitter(; io=io)
+    return EMITTER[]
 end
 
 # ── Hook overrides ────────────────────────────────────────────────────────
