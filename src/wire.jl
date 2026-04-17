@@ -13,14 +13,19 @@
 # limitations under the License.
 #
 # ── wire.jl ──────────────────────────────────────────────────────────────
-# Phase 2a: Serializable Buffer wire format.
+# Phase 2a: Serializable Buffer wire format + InputEvent wire format.
 #
 # Server-authoritative architecture: widgets never cross the wire.
-# Only the Buffer (pure Cell grid) travels down to the client.
-# InputEvents travel up. This module handles the Buffer direction.
+# Only the Buffer (pure Cell grid) travels DOWN to the client.
+# InputEvents travel UP from the client to the server.
 #
 # JSON3 StructType declarations let Cell/Style/Rect/Buffer round-trip
 # through JSON3 without any custom read/write — struct fields map 1:1.
+#
+# InputEvent direction (client → server):
+#   KeyEvent   → WireKeyEvent   (type = "key")
+#   MouseEvent → WireMouseEvent (type = "mouse")
+#   Resize     → WireResizeEvent (type = "resize") — terminal geometry change
 # ─────────────────────────────────────────────────────────────────────────
 
 using JSON3
@@ -131,4 +136,157 @@ Deserialize a JSON string produced by `wire_encode` back to a Buffer.
 function wire_decode(s::String)::Buffer
     w = JSON3.read(s, WireBuffer)
     from_wire_buffer(w)
+end
+
+# ── InputEvent wire format ────────────────────────────────────────────────
+#
+# Enums (KeyAction, MouseButton, MouseAction) are stored as their string
+# names so the wire format is self-describing and survives enum reorderings.
+#
+# Tagged-union: each wire struct carries a `type` discriminator string.
+#   "key"    → WireKeyEvent
+#   "mouse"  → WireMouseEvent
+#   "resize" → WireResizeEvent
+#
+# encode_input / decode_input are the public entry points.
+
+# ── Enum ↔ String helpers ─────────────────────────────────────────────────
+
+_key_action_to_str(a::KeyAction) =
+    a == key_press   ? "press"   :
+    a == key_repeat  ? "repeat"  : "release"
+
+function _str_to_key_action(s::AbstractString)
+    s == "press"   && return key_press
+    s == "repeat"  && return key_repeat
+    s == "release" && return key_release
+    error("unknown KeyAction: $s")
+end
+
+_mouse_button_to_str(b::MouseButton) =
+    b == mouse_left         ? "left"         :
+    b == mouse_middle       ? "middle"       :
+    b == mouse_right        ? "right"        :
+    b == mouse_none         ? "none"         :
+    b == mouse_scroll_up    ? "scroll_up"    :
+    b == mouse_scroll_down  ? "scroll_down"  :
+    b == mouse_scroll_left  ? "scroll_left"  : "scroll_right"
+
+function _str_to_mouse_button(s::AbstractString)
+    s == "left"         && return mouse_left
+    s == "middle"       && return mouse_middle
+    s == "right"        && return mouse_right
+    s == "none"         && return mouse_none
+    s == "scroll_up"    && return mouse_scroll_up
+    s == "scroll_down"  && return mouse_scroll_down
+    s == "scroll_left"  && return mouse_scroll_left
+    s == "scroll_right" && return mouse_scroll_right
+    error("unknown MouseButton: $s")
+end
+
+_mouse_action_to_str(a::MouseAction) =
+    a == mouse_press   ? "press"   :
+    a == mouse_release ? "release" :
+    a == mouse_drag    ? "drag"    : "move"
+
+function _str_to_mouse_action(s::AbstractString)
+    s == "press"   && return mouse_press
+    s == "release" && return mouse_release
+    s == "drag"    && return mouse_drag
+    s == "move"    && return mouse_move
+    error("unknown MouseAction: $s")
+end
+
+# ── WireKeyEvent ──────────────────────────────────────────────────────────
+
+struct WireKeyEvent
+    type::String      # always "key"
+    key::String       # Symbol name
+    char::Int32       # Char as codepoint (JSON-safe integer)
+    action::String    # KeyAction name
+end
+StructTypes.StructType(::Type{WireKeyEvent}) = StructTypes.Struct()
+
+to_wire(e::KeyEvent) = WireKeyEvent("key", string(e.key), Int32(e.char), _key_action_to_str(e.action))
+
+from_wire(w::WireKeyEvent) = KeyEvent(Symbol(w.key), Char(w.char), _str_to_key_action(w.action))
+
+# ── WireMouseEvent ────────────────────────────────────────────────────────
+
+struct WireMouseEvent
+    type::String      # always "mouse"
+    x::Int
+    y::Int
+    button::String    # MouseButton name
+    action::String    # MouseAction name
+    shift::Bool
+    alt::Bool
+    ctrl::Bool
+end
+StructTypes.StructType(::Type{WireMouseEvent}) = StructTypes.Struct()
+
+to_wire(e::MouseEvent) = WireMouseEvent(
+    "mouse", e.x, e.y,
+    _mouse_button_to_str(e.button),
+    _mouse_action_to_str(e.action),
+    e.shift, e.alt, e.ctrl,
+)
+
+from_wire(w::WireMouseEvent) = MouseEvent(
+    w.x, w.y,
+    _str_to_mouse_button(w.button),
+    _str_to_mouse_action(w.action),
+    w.shift, w.alt, w.ctrl,
+)
+
+# ── WireResizeEvent ───────────────────────────────────────────────────────
+# Resize is not a Julia struct in the events.jl hierarchy (the terminal
+# handles it internally via check_resize!), but over the wire a remote
+# client must be able to notify the server of a geometry change.
+
+struct WireResizeEvent
+    type::String   # always "resize"
+    cols::Int
+    rows::Int
+end
+StructTypes.StructType(::Type{WireResizeEvent}) = StructTypes.Struct()
+
+# ── Public helpers ────────────────────────────────────────────────────────
+
+"""
+    encode_input(evt) → String
+
+Serialize a `KeyEvent`, `MouseEvent`, or `WireResizeEvent` to a JSON string
+for transport from the client to the server.
+
+The JSON object carries a `type` discriminator field:
+- `"key"`    — `KeyEvent`
+- `"mouse"`  — `MouseEvent`
+- `"resize"` — terminal geometry notification (use `WireResizeEvent` directly)
+"""
+function encode_input(e::KeyEvent)::String
+    JSON3.write(to_wire(e))
+end
+
+function encode_input(e::MouseEvent)::String
+    JSON3.write(to_wire(e))
+end
+
+function encode_input(e::WireResizeEvent)::String
+    JSON3.write(e)
+end
+
+"""
+    decode_input(s::String) → KeyEvent | MouseEvent | WireResizeEvent
+
+Deserialize a JSON string produced by `encode_input`.  Reads the `type`
+discriminator and returns the matching concrete type.
+"""
+function decode_input(s::String)
+    obj = JSON3.read(s)
+    t = get(obj, :type, nothing)
+    t == "key"    && return from_wire(JSON3.read(s, WireKeyEvent))
+    t == "mouse"  && return from_wire(JSON3.read(s, WireMouseEvent))
+    t == "resize" && return JSON3.read(s, WireResizeEvent)
+    error("decode_input: unknown event type $(repr(t))")
 end

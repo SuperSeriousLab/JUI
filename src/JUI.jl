@@ -6,12 +6,12 @@ using FileWatching: poll_fd
 
 include("style.jl")
 include("buffer.jl")
-include("wire.jl")
 include("layout.jl")
 include("cast_recorder.jl")     # CastRecorder struct (before terminal.jl)
 include("terminal.jl")
 include("pty.jl")
 include("events.jl")
+include("wire.jl")              # after events.jl: InputEvent wire types need KeyEvent/MouseEvent
 include("scripting.jl")
 include("async.jl")
 include("resizable_layout.jl")
@@ -72,6 +72,7 @@ export # Core types
        clipboard_copy!, buffer_to_text,
        # Wire protocol (Phase 2a)
        wire_encode, wire_decode,
+       WireResizeEvent, encode_input, decode_input,
        # Async tasks
        TaskEvent, TaskQueue, CancelToken,
        spawn_task!, spawn_timer!, drain_tasks!,
