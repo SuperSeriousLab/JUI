@@ -32,21 +32,21 @@ phases:
 
   - id: phase-2a
     name: "Phase 2a: Wire Protocol — Serializable Buffer + Input Events"
-    status: not-started
+    status: completed
     depends_on: [phase-1]
     items:
       - name: "Serializable Buffer wire format (JSON3 StructType or msgpack, ~20 LOC — Buffer is already pure Cell grid)"
-        done: false
+        done: true
       - name: "Serializable InputEvent types (KeyEvent, MouseEvent, Resize)"
-        done: false
+        done: true
       - name: "Session registry: SessionID → server-side App instance + last Buffer"
-        done: false
+        done: true
       - name: "Snapshot-on-attach + cell-diff-stream protocol spec"
-        done: false
+        done: true
       - name: "Server-authoritative model: widgets never leave server, client holds zero widget state"
-        done: false
+        done: true
       - name: "Round-trip test: local client sends key → server processes → new Buffer diff → client renders"
-        done: false
+        done: true
 
   - id: phase-2b
     name: "Phase 2b: Renderer Decoupled + Predictive Local Echo"
