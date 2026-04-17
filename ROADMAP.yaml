@@ -1,29 +1,27 @@
 project: JUI
-description: "AI-first Julia TUI framework — ET always-on, FRANK orthogonal diagnostics. Single build: Unix socket (local) + TCP (remote), zero mode switch."
+description: "AI-first Julia TUI framework — hard fork of Tachikoma.jl substrate + ET always-on, FRANK orthogonal diagnostics. Single build: Unix socket (local) + TCP (remote), zero mode switch."
 
 phases:
   - id: phase-1
-    name: "Phase 1: Extracted from Igor — Standalone Scaffold"
+    name: "Phase 1: Tachikoma.jl Hard Fork — Baseline Substrate"
     status: completed
     depends_on: []
     items:
-      - name: "Extract JUI from Igor monorepo"
+      - name: "Hard fork Tachikoma.jl @ 2271069 as JUI v0.2.0 (2026-04-17)"
         done: true
-      - name: "Project scaffold (CLAUDE.md, ROADMAP.yaml, README.md)"
+      - name: "Module rename: Tachikoma → JUI throughout src/, test/, ext/"
         done: true
-      - name: "4 core components: InputComponent, OutputComponent, StatusBar, HistoryPanel"
+      - name: "Project.toml: name=JUI, uuid=a3b5c7d9-e1f2-4a6b-8c0d-2e4f6a8b0c1d, version=0.2.0"
         done: true
-      - name: "App struct + render_screen! full-layout composer"
+      - name: "NOTICE + LICENSE-MIT added (full attribution, dual-license clarity)"
         done: true
-      - name: "ANSI 256-color palette + box-drawing primitives"
+      - name: "All Tachikoma ext modules renamed: JUIColorTypesExt, JUIGifExt, JUIMarkdownExt, JUISQLiteExt, JUITablesExt"
         done: true
-      - name: "FRANK integration: all state changes emit events"
-        done: true
-      - name: "Main event loop (run!)"
+      - name: "CLAUDE.md updated to reflect Tachikoma-fork origin"
         done: true
       - name: "Forgejo repo created (http://192.168.14.77:3000/eidos/JUI)"
         done: true
-      - name: "TECH DEBT: Igor-specific fields in StatusBar (wiq_score, confidence) — mark for Phase 2c"
+      - name: "Baseline substrate: cell-grid renderer, layout solver, 30+ widgets, TaskQueue, TestBackend, animation, sixel/kitty graphics"
         done: true
 
   - id: phase-2a
@@ -31,7 +29,7 @@ phases:
     status: not-started
     depends_on: [phase-1]
     items:
-      - name: "Extract AppState as pure data struct (zero IO, serializable)"
+      - name: "Extract AppState as pure data struct (zero IO, serializable) — on top of Tachikoma Model substrate"
         done: false
       - name: "All component state moved into AppState fields"
         done: false
@@ -47,7 +45,7 @@ phases:
     items:
       - name: "Renderer takes Writer parameter instead of hardcoded stdout"
         done: false
-      - name: "Kill all print(stdout, ...) direct calls (~15 sites)"
+      - name: "Kill all print(stdout, ...) direct calls"
         done: false
       - name: "render_screen!(writer, state) → pure rendering, testable diffs"
         done: false
@@ -55,27 +53,29 @@ phases:
         done: false
 
   - id: phase-2c
-    name: "Phase 2c: Generalize Components + FRANK Optional"
+    name: "Phase 2c: FRANK Instrumentation Integration + Agent Attach Hooks"
     status: not-started
     depends_on: [phase-2b]
     items:
-      - name: "Remove Igor-specific fields from StatusBar (wiq_score, confidence, model → generic)"
-        done: false
-      - name: "Generic StatusBar: key-value pairs, caller defines fields"
-        done: false
-      - name: "Make FRANK a weak/optional dependency (Julia ext mechanism)"
+      - name: "Add FRANK as a weak/optional dependency (Julia ext mechanism)"
         done: false
       - name: "JUI works fully with zero FRANK present (no debug events, no crash)"
+        done: false
+      - name: "All JUI state changes emit FRANK events when FRANK is loaded"
+        done: false
+      - name: "Agent attach API: agents can subscribe to FRANK event stream"
+        done: false
+      - name: "Generic StatusBar: key-value pairs, caller defines fields"
         done: false
       - name: "Generic prompt string (not hardcoded 'igor>')"
         done: false
       - name: "Component registry: allow callers to add custom components"
         done: false
-      - name: "Layout engine: configurable proportions (not hardcoded 30/70 split)"
+      - name: "Layout engine: configurable proportions"
         done: false
-      - name: "run! callback API: caller provides on_input handler, not hardcoded echo"
+      - name: "run! callback API: caller provides on_input handler"
         done: false
-      - name: "Unit tests for all components (no Igor deps)"
+      - name: "Unit tests for all JUI-specific additions (no Igor deps)"
         done: false
 
   - id: phase-3
@@ -121,7 +121,7 @@ phases:
         done: false
       - name: "Usage docs: quick-start example app with ET sessions"
         done: false
-      - name: "CHANGELOG.md v0.1 → v0.4"
+      - name: "CHANGELOG.md v0.2 → v0.5"
         done: false
       - name: "Validate: Igor and future consumers install via registry (not path deps)"
         done: false

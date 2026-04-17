@@ -1,0 +1,10 @@
+JUI — AI-agent-first Julia TUI framework
+Copyright (c) 2026 eidos workspace
+
+This product includes software developed as Tachikoma.jl
+Copyright (c) Kahli Burke
+Licensed under the MIT License (see LICENSE-MIT).
+
+JUI is a hard fork of Tachikoma.jl commit 2271069, forked 2026-04-17.
+All files originating from Tachikoma.jl retain their MIT copyright headers.
+JUI additions are licensed under Apache License 2.0 (see LICENSE).

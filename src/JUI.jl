@@ -1,668 +1,256 @@
 module JUI
 
-using FRANK
-using Dates
+using PrecompileTools
+using Preferences
+using FileWatching: poll_fd
 
-export App, Component, InputComponent, OutputComponent, StatusBar, HistoryPanel
-export render!, render_screen!, handle_input!, run!
-export term_size, clear_screen!, move_cursor!, set_color!, reset_color!
-export append_output!, update_status!
+include("style.jl")
+include("buffer.jl")
+include("layout.jl")
+include("cast_recorder.jl")     # CastRecorder struct (before terminal.jl)
+include("terminal.jl")
+include("pty.jl")
+include("events.jl")
+include("scripting.jl")
+include("async.jl")
+include("resizable_layout.jl")
+include("animation.jl")
+include("widgets/widgets.jl")
+include("sixel.jl")
+include("kitty_graphics.jl")
+include("sixel_canvas.jl")
+include("sixel_image.jl")
+include("widgets/blockcanvas.jl")
+include("app.jl")
+include("test_backend.jl")
+include("paged/Paged.jl")       # PagedDataTable submodule
+using .Paged                    # re-export all Paged symbols
+include("font_discovery.jl")    # font scanning (before export_svg.jl)
+include("export_stubs.jl")      # extension dispatch stubs + loaders (after widgets)
+include("recording.jl")         # core recording functions (after app.jl + test_backend.jl)
+include("export_svg.jl")        # SVG export (after font_discovery.jl)
+include("export_prefs.jl")      # export preferences
+include("tach_format.jl")       # .tach binary format (after recording.jl)
+include("dotwave_terrain.jl")
+include("phylo_tree.jl")
+include("background.jl")
+include("markdown.jl")
 
-"""JUI v0.1 — Julia TUI framework with native FRANK debug emission.
-AI-agent-debuggable by construction: every state change emits a FRANK event."""
-
-# ── ANSI escape codes ─────────────────────────────────────────────────
-
-const ESC = "\e"
-const CSI = "\e["
-
-# Named color map → ANSI 256-color codes
-# Amber/orange on dark grey palette
-const COLORS = Dict{Symbol,Int}(
-    :black       => 0,
-    :red         => 1,
-    :green       => 2,
-    :yellow      => 3,
-    :blue        => 4,
-    :magenta     => 5,
-    :cyan        => 6,
-    :white       => 7,
-    :amber       => 208,   # orange/amber — workspace aesthetic
-    :dark_amber  => 172,
-    :bright_amber=> 214,
-    :dark_grey   => 236,
-    :mid_grey    => 240,
-    :light_grey  => 248,
-    :orange      => 202,
-)
-
-# ── Component types ────────────────────────────────────────────────────
-
-abstract type Component end
-
-mutable struct InputComponent <: Component
-    buffer::String
-    cursor::Int
-    prompt::String
+function __init__()
+    load_light_mode!()
+    load_theme!()
+    load_animations!()
+    load_render_backend!()
+    load_decay_params!()
+    load_bg_config!()
+    load_window_opacity!()
+    load_export_prefs!()
 end
 
-mutable struct OutputComponent <: Component
-    lines::Vector{String}
-    max_lines::Int
+# ── Public API ──
+export # Core types
+       Model, Terminal, Frame, Buffer, Rect,
+       Style, Color256, Theme,
+       Event, KeyEvent,
+       KeyAction, key_press, key_repeat, key_release,
+       MouseEvent, MouseButton, MouseAction,
+       mouse_left, mouse_middle, mouse_right, mouse_none,
+       mouse_scroll_up, mouse_scroll_down, mouse_scroll_left, mouse_scroll_right,
+       mouse_press, mouse_release, mouse_drag, mouse_move,
+       Block, StatusBar, Span,
+       # Layout
+       Layout, Vertical, Horizontal, Constraint, Fixed, Fill, Percent, Min, Max, Ratio,
+       split_layout, split_with_spacers,
+       LayoutAlign, layout_start, layout_center, layout_end,
+       layout_space_between, layout_space_around, layout_space_evenly,
+       ResizableLayout, handle_resize!, reset_layout!, render_resize_handles!,
+       # App framework
+       app, @jui_app, set_wake!,
+       tty_path,
+       prepare_for_exec!,
+       clipboard_copy!, buffer_to_text,
+       # Async tasks
+       TaskEvent, TaskQueue, CancelToken,
+       spawn_task!, spawn_timer!, drain_tasks!,
+       cancel!, is_cancelled,
+       # Rendering primitives
+       render, set_char!, set_string!, set_style!, set_theme!,
+       tstyle, theme, bottom, right, inner,
+       pixel_size,
+       cell_pixels, text_area_pixels, text_area_cells, sixel_scale, sixel_area_pixels,
+       # Themes
+       KOKAKU, ESPER, MOTOKO, KANEDA, NEUROMANCER, CATPPUCCIN,
+       SOLARIZED, DRACULA, OUTRUN, ZENBURN, ICEBERG,
+       PAPER, LATTE, SOLARIS, SAKURA, AYU,
+       GRUVBOX, FROST, MEADOW, DUNE, LAVENDER, HORIZON,
+       OVERCAST, DUSK,
+       DARK_THEMES, LIGHT_THEMES, ALL_THEMES, THEME, RESET,
+       light_mode, set_light_mode!, active_themes, canvas_bg, canvas_bg_rgb,
+       # Visual constants
+       DOT, BARS_V, BARS_H, BLOCKS, SCANLINE, MARKER,
+       SPINNER_BRAILLE, SPINNER_DOTS,
+       # Geometry helpers
+       margin, shrink, center, anchor,
+       # Colors
+       ColorRGB, ColorRGBA, BLACK, TRANSPARENT, to_rgb, to_rgba, to_colortype,
+       color_lerp, color_wave,
+       brighten, dim_color, hue_shift,
+       # Tailwind palettes
+       TailwindPalette, hex_to_color256,
+       SLATE, GRAY, ZINC, NEUTRAL, STONE,
+       RED, ORANGE, AMBER, YELLOW, LIME, GREEN, EMERALD, TEAL,
+       CYAN, SKY, BLUE, INDIGO, VIOLET, PURPLE, FUCHSIA, PINK, ROSE,
+       # Animation
+       Tween, Spring, Timeline, TimelineEntry, Animator,
+       tween, advance!, done, reset!,
+       settled, retarget!,
+       sequence, stagger, parallel,
+       tick!, val, animate!,
+       linear, ease_in_quad, ease_out_quad, ease_in_out_quad,
+       ease_in_cubic, ease_out_cubic, ease_in_out_cubic,
+       ease_out_elastic, ease_out_bounce, ease_out_back,
+       # Organic animation
+       noise, fbm, pulse, breathe, shimmer, jitter,
+       flicker, drift, glow,
+       animations_enabled, toggle_animations!,
+       # Texture fills
+       fill_gradient!, fill_noise!, border_shimmer!,
+       # Widget protocol
+       intrinsic_size, focusable, FocusRing, Container, WidgetScroll,
+       next!, prev!, current, handle_key!,
+       value, set_value!, valid,
+       # Widgets
+       BigText,
+       Gauge, Sparkline, BarChart, BarEntry, Table,
+       SelectableList, ListItem, TabBar, TabBarStyle, TabDecoration,
+       BracketTabs, BoxTabs, PlainTabs, tab_height,
+       Calendar, Scrollbar, inner_area,
+       ScrollPane, push_line!, set_content!, set_total!, handle_mouse!,
+       list_hit, list_scroll,
+       TextInput, text, set_text!,
+       Modal, Paragraph, WrapMode, no_wrap, word_wrap, char_wrap,
+       Alignment, align_left, align_center, align_right,
+       paragraph_line_count,
+       TreeView, TreeNode,
+       Separator,
+       Checkbox, RadioGroup,
+       Button, ButtonStyle, ButtonDecoration,
+       BracketButton, BorderedButton, PlainButton, button_height,
+       DropDown,
+       TextArea,
+       CodeEditor, tokenize_line, TokenKind, Token, editor_mode, pending_command!,
+       tokenize_python, tokenize_shell, tokenize_typescript,
+       tokenize_code, token_style,
+       Chart, DataSeries, ChartType, chart_line, chart_scatter,
+       DataTable, DataColumn, ColumnAlign, col_left, col_right, col_center,
+       SortDir, sort_none, sort_asc, sort_desc, sort_by!,
+       datatable_detail,
+       PagedDataTable, pdt_set_provider!,
+       Form, FormField,
+       ProgressList, ProgressItem, TaskStatus,
+       task_pending, task_running, task_done, task_error, task_skipped,
+       # Floating windows
+       FloatingWindow, WindowManager,
+       window_rect, focused_window, bring_to_front!,
+       focus_next!, focus_prev!, tile!, cascade!,
+       handle_event!, step!, tick,
+       window_opacity, set_window_opacity!, WINDOW_OPACITY,
+       recording_enabled,
+       # Terminal widget
+       TerminalWidget, TermScreen, PTY, REPLWidget,
+       pty_spawn, pty_pair, pty_close!, pty_resize!, pty_alive, drain!,
+       route_output!,
+       # Canvas
+       Canvas, set_point!, line!, clear!, unset_point!, in_bounds,
+       rect!, circle!, arc!,
+       BlockCanvas,
+       # Box styles
+       BOX_ROUNDED, BOX_HEAVY, BOX_DOUBLE, BOX_PLAIN,
+       # Render backend + decay
+       RenderBackend, braille_backend, block_backend, sixel_backend,
+       render_backend, set_render_backend!, cycle_render_backend!,
+       DecayParams, decay_params,
+       # Graphics protocol
+       GraphicsProtocol, gfx_none, gfx_sixel, gfx_kitty, graphics_protocol,
+       GraphicsRegion, GraphicsFormat, gfx_fmt_sixel, gfx_fmt_kitty,
+       # Pixel canvas
+       PixelCanvas, create_canvas, render_canvas, canvas_dot_size,
+       set_pixel!, pixel_line!, fill_pixel_rect!,
+       # PixelImage widget
+       PixelImage, fill_rect!, load_pixels!, render_rgba!,
+       set_background!, reset_background!,
+       # Background system
+       Background, DotWaveBackground, PhyloTreeBackground,
+       CladogramBackground,
+       render_background!, desaturate,
+       BackgroundConfig, bg_config,
+       # Phylo tree
+       PhyloBranch, PhyloTree, PhyloTreePreset, PHYLO_PRESETS,
+       generate_phylo_tree, render_phylo_tree!,
+       # Cladogram
+       CladoBranch, CladoTree, CladoPreset, CLADO_PRESETS,
+       generate_clado_tree, render_clado_tree!,
+       # Dotwave terrain
+       WaveLayer, DotWavePreset, DOTWAVE_PRESETS,
+       dotwave_height, render_dotwave_terrain!,
+       # Scripting / event sequences
+       EventScript, Wait, key, pause, seq, rep, chars,
+       # Test backend
+       TestBackend, render_widget!, char_at, style_at, row_text, find_text,
+       # Recording
+       CastRecorder, PixelSnapshot,
+       record_app, record_widget, record_gif,
+       start_recording!, stop_recording!, clear_recording!,
+       export_svg, export_gif_from_snapshots, export_apng_from_snapshots,
+       gif_extension_loaded, tables_extension_loaded, sqlite_extension_loaded,
+       enable_gif, enable_tables, enable_sqlite, create_sqlite_provider,
+       discover_mono_fonts, find_font_variant, find_bold_variant,
+       # Markdown extension
+       MarkdownPane, set_markdown!,
+       markdown_to_spans, enable_markdown, markdown_extension_loaded,
+       # ANSI text
+       parse_ansi, ansi_enabled, set_ansi_enabled!,
+       # .tach format
+       write_tach, load_tach, compress_dead_space
+
+# ── Precompilation workload ──────────────────────────────────────────
+@compile_workload begin
+    tb = TestBackend(80, 24)
+    r = Rect(1, 1, 80, 24)
+
+    # Layout
+    layout = Layout(Vertical, [Fixed(3), Fill(1), Fixed(1)])
+    split_layout(layout, r)
+    layout_h = Layout(Horizontal, [Percent(30), Fill(1), Fixed(20)])
+    split_layout(layout_h, r)
+
+    # Style
+    Style(fg=BLUE.c500, bg=SLATE.c900, bold=true)
+
+    # Widgets
+    render_widget!(tb, Block(title="Test"))
+    render_widget!(tb, Gauge(0.65, label="Loading"))
+    render_widget!(tb, SelectableList(["Alpha", "Beta", "Gamma", "Delta"]))
+    render_widget!(tb, TextInput(label="Search"))
+    render_widget!(tb, Table(["Name", "Age"], [["Alice", "30"], ["Bob", "25"]]))
+    render_widget!(tb, Sparkline([1.0, 4.0, 2.0, 8.0, 5.0, 7.0]))
+    render_widget!(tb, BarChart([BarEntry("A", 5), BarEntry("B", 3), BarEntry("C", 8)]))
+
+    # Canvas
+    c = Canvas(40, 20)
+    line!(c, 0, 0, 39, 19)
+    circle!(c, 20, 10, 8)
+    render_widget!(tb, c)
+
+    # Animation
+    tw = tween(0.0, 1.0, duration=30)
+    advance!(tw)
+    value(tw)
+
+    # Buffer inspection
+    row_text(tb, 1)
+    char_at(tb, 1, 1)
+    find_text(tb, "Test")
 end
 
-mutable struct StatusBar <: Component
-    mode::String          # "caveman" | "normal" | "verbose" | "debug"
-    model::String
-    wiq_score::Float64
-    confidence::Float64
 end
-
-mutable struct HistoryPanel <: Component
-    entries::Vector{Dict{String,Any}}  # {input, output, confidence, ts}
-    max_entries::Int
-    scroll_offset::Int
-end
-
-mutable struct App
-    input::InputComponent
-    output::OutputComponent
-    status::StatusBar
-    history::HistoryPanel
-    frank::FrankEmitter
-    running::Bool
-end
-
-function App(; model::String="unknown", mode::String="caveman")
-    App(
-        InputComponent("", 0, "igor> "),
-        OutputComponent(String[], 100),
-        StatusBar(mode, model, 0.0, 0.0),
-        HistoryPanel(Dict{String,Any}[], 500, 0),
-        FrankEmitter(),
-        false
-    )
-end
-
-# ── Terminal utilities ─────────────────────────────────────────────────
-
-"""Get terminal size as (rows, cols). Falls back to (24, 80)."""
-function term_size()
-    try
-        # Try tput first — portable across systems
-        rows_str = strip(read(`tput lines`, String))
-        cols_str = strip(read(`tput cols`, String))
-        rows = parse(Int, rows_str)
-        cols = parse(Int, cols_str)
-        return (rows, cols)
-    catch
-        # Try LINES/COLUMNS env vars
-        try
-            rows = parse(Int, get(ENV, "LINES", "24"))
-            cols = parse(Int, get(ENV, "COLUMNS", "80"))
-            return (rows, cols)
-        catch
-            return (24, 80)
-        end
-    end
-end
-
-"""Clear entire screen and move cursor to top-left."""
-function clear_screen!()
-    print(stdout, CSI, "2J", CSI, "H")
-    flush(stdout)
-end
-
-"""Move cursor to (row, col). 1-indexed."""
-function move_cursor!(row::Int, col::Int)
-    print(stdout, CSI, row, ";", col, "H")
-end
-
-"""Set foreground color by name or 256-color index."""
-function set_color!(; fg::Union{Symbol,Int,Nothing}=nothing,
-                      bg::Union{Symbol,Int,Nothing}=nothing)
-    if fg !== nothing
-        code = fg isa Symbol ? get(COLORS, fg, 7) : fg
-        if code < 8
-            print(stdout, CSI, 30 + code, "m")
-        else
-            print(stdout, CSI, "38;5;", code, "m")
-        end
-    end
-    if bg !== nothing
-        code = bg isa Symbol ? get(COLORS, bg, 0) : bg
-        if code < 8
-            print(stdout, CSI, 40 + code, "m")
-        else
-            print(stdout, CSI, "48;5;", code, "m")
-        end
-    end
-end
-
-"""Reset all ANSI attributes."""
-function reset_color!()
-    print(stdout, CSI, "0m")
-end
-
-"""Print bold text."""
-function set_bold!()
-    print(stdout, CSI, "1m")
-end
-
-"""Print dim text."""
-function set_dim!()
-    print(stdout, CSI, "2m")
-end
-
-# ── Box drawing helpers ────────────────────────────────────────────────
-
-"""Draw a horizontal line of given width with box chars."""
-function draw_hline!(col::Int, row::Int, width::Int, left::Char, fill::Char, right::Char;
-                     label::String="")
-    move_cursor!(row, col)
-    set_color!(fg=:dark_amber)
-    print(stdout, left)
-    if !isempty(label)
-        # Insert label after left corner: "─ Label ─────"
-        decorated = " $(label) "
-        set_bold!()
-        set_color!(fg=:amber)
-        print(stdout, decorated)
-        set_color!(fg=:dark_amber)
-        reset_bold = CSI * "22m"
-        print(stdout, reset_bold)
-        remaining = width - 2 - length(decorated)
-        remaining > 0 && print(stdout, fill ^ remaining)
-    else
-        print(stdout, fill ^ (width - 2))
-    end
-    print(stdout, right)
-    reset_color!()
-end
-
-"""Draw the left and right border chars for a content line."""
-function draw_borders!(row::Int, width::Int)
-    move_cursor!(row, 1)
-    set_color!(fg=:dark_amber)
-    print(stdout, '│')
-    move_cursor!(row, width)
-    print(stdout, '│')
-    reset_color!()
-end
-
-# ── Render per component ───────────────────────────────────────────────
-
-"""Render InputComponent: prompt + buffer with cursor indicator at given row."""
-function render!(app::App, comp::InputComponent; row::Int=0, width::Int=80)
-    rows, cols = row == 0 ? term_size() : (row, width)
-    row == 0 && (row = rows)
-    width = width > 0 ? width : cols
-
-    draw_borders!(row, width)
-    move_cursor!(row, 2)
-    # Content area is width-2 (inside borders)
-    content_width = width - 2
-
-    set_color!(fg=:amber, bg=:dark_grey)
-    print(stdout, ' ')
-    set_bold!()
-    set_color!(fg=:bright_amber)
-    print(stdout, comp.prompt)
-    reset_color!()
-    set_color!(fg=:white, bg=:dark_grey)
-    print(stdout, comp.buffer)
-    # Cursor indicator
-    set_color!(fg=:bright_amber)
-    print(stdout, '_')
-    reset_color!()
-    # Fill remaining space
-    used = 1 + length(comp.prompt) + length(comp.buffer) + 1  # space + prompt + buffer + cursor
-    remaining = content_width - used
-    if remaining > 0
-        set_color!(bg=:dark_grey)
-        print(stdout, ' ' ^ remaining)
-        reset_color!()
-    end
-
-    emit!(app.frank, "jui.input", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("prompt" => comp.prompt, "buffer" => comp.buffer,
-                           "cursor" => comp.cursor);
-          transition="render")
-end
-
-"""Render OutputComponent: scrollable text panel."""
-function render!(app::App, comp::OutputComponent; start_row::Int=2, end_row::Int=10, width::Int=80)
-    content_height = end_row - start_row + 1
-    content_width = width - 2
-
-    # Determine which lines to show (tail of output, scrollable)
-    total = length(comp.lines)
-    if total <= content_height
-        visible = comp.lines
-        pad_lines = content_height - total
-    else
-        first = max(1, total - content_height + 1)
-        visible = comp.lines[first:end]
-        pad_lines = content_height - length(visible)
-    end
-
-    for (i, offset) in enumerate(0:content_height-1)
-        r = start_row + offset
-        draw_borders!(r, width)
-        move_cursor!(r, 2)
-        set_color!(fg=:light_grey, bg=:dark_grey)
-        if i <= length(visible)
-            line = visible[i]
-            # Truncate to content width
-            display_line = length(line) > content_width ? line[1:content_width] : line
-            print(stdout, ' ', display_line)
-            fill = content_width - 1 - length(display_line)
-            fill > 0 && print(stdout, ' ' ^ fill)
-        else
-            print(stdout, ' ' ^ content_width)
-        end
-        reset_color!()
-    end
-
-    emit!(app.frank, "jui.output", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("line_count" => total,
-                           "visible_lines" => length(visible));
-          transition="render")
-end
-
-"""Render StatusBar: single line showing mode, model, WIQ, confidence."""
-function render!(app::App, comp::StatusBar; row::Int=0, width::Int=80)
-    content_width = width - 2
-
-    draw_borders!(row, width)
-    move_cursor!(row, 2)
-    set_color!(bg=:dark_grey)
-
-    # Build status string
-    set_color!(fg=:amber)
-    print(stdout, ' ')
-    set_bold!()
-    print(stdout, '[')
-    set_color!(fg=:bright_amber)
-    print(stdout, comp.mode)
-    set_color!(fg=:amber)
-    print(stdout, ']')
-    print(stdout, CSI, "22m")  # unbold
-
-    set_color!(fg=:mid_grey)
-    print(stdout, " | ")
-
-    set_color!(fg=:dark_amber)
-    print(stdout, "model: ")
-    set_color!(fg=:light_grey)
-    print(stdout, comp.model)
-
-    set_color!(fg=:mid_grey)
-    print(stdout, " | ")
-
-    set_color!(fg=:dark_amber)
-    print(stdout, "WIQ:")
-    wiq_str = string(round(Int, comp.wiq_score))
-    # Color WIQ by value
-    if comp.wiq_score >= 100
-        set_color!(fg=:green)
-    elseif comp.wiq_score >= 75
-        set_color!(fg=:yellow)
-    else
-        set_color!(fg=:red)
-    end
-    print(stdout, wiq_str)
-
-    set_color!(fg=:mid_grey)
-    print(stdout, " | ")
-
-    set_color!(fg=:dark_amber)
-    print(stdout, "conf:")
-    conf_str = string(round(comp.confidence; digits=2))
-    if comp.confidence >= 0.85
-        set_color!(fg=:green)
-    elseif comp.confidence >= 0.5
-        set_color!(fg=:yellow)
-    else
-        set_color!(fg=:red)
-    end
-    print(stdout, conf_str)
-
-    reset_color!()
-    set_color!(bg=:dark_grey)
-    # Calculate used width and fill remainder
-    status_text = " [$(comp.mode)] | model: $(comp.model) | WIQ:$(wiq_str) | conf:$(conf_str)"
-    fill = content_width - length(status_text)
-    fill > 0 && print(stdout, ' ' ^ fill)
-    reset_color!()
-
-    emit!(app.frank, "jui.status", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("mode" => comp.mode, "model" => comp.model,
-                           "wiq" => comp.wiq_score, "confidence" => comp.confidence);
-          transition="render")
-end
-
-"""Render HistoryPanel: scrollable list of past commands with confidence."""
-function render!(app::App, comp::HistoryPanel; start_row::Int=2, end_row::Int=5, width::Int=80)
-    content_height = end_row - start_row + 1
-    content_width = width - 2
-
-    entries = comp.entries
-    total = length(entries)
-
-    # Apply scroll offset, show most recent at bottom
-    if total <= content_height
-        visible = entries
-    else
-        last_idx = total - comp.scroll_offset
-        first_idx = max(1, last_idx - content_height + 1)
-        visible = entries[first_idx:min(last_idx, total)]
-    end
-
-    for i in 1:content_height
-        r = start_row + i - 1
-        draw_borders!(r, width)
-        move_cursor!(r, 2)
-        set_color!(bg=:dark_grey)
-        if i <= length(visible)
-            entry = visible[i]
-            conf = get(entry, "confidence", 0.0)
-            input_text = get(entry, "input", "")
-            output_text = get(entry, "output", "")
-
-            # Format: "0.92 list files -> ls"
-            set_color!(fg=:dark_amber, bg=:dark_grey)
-            print(stdout, ' ')
-            # Confidence color
-            if conf >= 0.85
-                set_color!(fg=:green)
-            elseif conf >= 0.5
-                set_color!(fg=:yellow)
-            else
-                set_color!(fg=:red)
-            end
-            conf_str = lpad(string(round(conf; digits=2)), 4)
-            print(stdout, conf_str)
-            set_color!(fg=:mid_grey)
-            print(stdout, ' ')
-            set_color!(fg=:light_grey)
-            print(stdout, input_text)
-            if !isempty(output_text)
-                set_color!(fg=:dark_amber)
-                print(stdout, " -> ")
-                set_color!(fg=:amber)
-                print(stdout, output_text)
-            end
-            # Fill remainder
-            line_content = " $(conf_str) $(input_text)" * (isempty(output_text) ? "" : " -> $(output_text)")
-            fill = content_width - length(line_content)
-            fill > 0 && print(stdout, ' ' ^ fill)
-        else
-            print(stdout, ' ' ^ content_width)
-        end
-        reset_color!()
-    end
-
-    emit!(app.frank, "jui.history", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("total_entries" => total,
-                           "visible" => length(visible),
-                           "scroll_offset" => comp.scroll_offset);
-          transition="render")
-end
-
-# ── Screen layout composition ──────────────────────────────────────────
-
-"""Compose all 4 components into the full screen layout.
-
-Layout (top to bottom):
-  Row 1:         top border with "Output" label
-  Row 2..O:      OutputComponent content
-  Row O+1:       separator with "History" label
-  Row O+2..H:    HistoryPanel content
-  Row H+1:       separator
-  Row H+2:       StatusBar
-  Row H+3:       separator
-  Row H+4:       InputComponent
-  Row H+5:       bottom border
-"""
-function render_screen!(app::App)
-    rows, cols = term_size()
-    width = cols
-
-    # Layout proportions
-    # Reserve: 1 top border + 1 history sep + 1 status sep + 1 input sep + 1 status + 1 input + 1 bottom = 7 chrome lines
-    chrome = 7
-    available = rows - chrome
-    # Give history 30% of available, output gets the rest (minimum 3 lines each)
-    history_height = max(3, min(div(available, 3), 8))
-    output_height = max(3, available - history_height)
-
-    # Calculate row positions
-    output_top_border = 1
-    output_start = 2
-    output_end = output_start + output_height - 1
-    history_border = output_end + 1
-    history_start = history_border + 1
-    history_end = history_start + history_height - 1
-    status_border = history_end + 1
-    status_row = status_border + 1
-    input_border = status_row + 1
-    input_row = input_border + 1
-    bottom_border = input_row + 1
-
-    # Draw top border
-    draw_hline!(1, output_top_border, width, '\u250C', '\u2500', '\u2510'; label="Output")
-
-    # Render output panel
-    render!(app, app.output; start_row=output_start, end_row=output_end, width=width)
-
-    # History separator
-    draw_hline!(1, history_border, width, '\u251C', '\u2500', '\u2524'; label="History")
-
-    # Render history panel
-    render!(app, app.history; start_row=history_start, end_row=history_end, width=width)
-
-    # Status separator
-    draw_hline!(1, status_border, width, '\u251C', '\u2500', '\u2524')
-
-    # Render status bar
-    render!(app, app.status; row=status_row, width=width)
-
-    # Input separator
-    draw_hline!(1, input_border, width, '\u251C', '\u2500', '\u2524')
-
-    # Render input
-    render!(app, app.input; row=input_row, width=width)
-
-    # Bottom border
-    draw_hline!(1, bottom_border, width, '\u2514', '\u2500', '\u2518')
-
-    flush(stdout)
-
-    # Emit full state via FRANK
-    emit!(app.frank, "jui.screen", FRANK.STATE_TRANSITION,
-          Dict{String,Any}(
-              "action" => "render_screen",
-              "terminal_size" => Dict("rows" => rows, "cols" => cols),
-              "layout" => Dict(
-                  "output_rows" => output_height,
-                  "history_rows" => history_height,
-                  "total_rows" => bottom_border
-              ),
-              "status" => Dict(
-                  "mode" => app.status.mode,
-                  "model" => app.status.model,
-                  "wiq" => app.status.wiq_score,
-                  "confidence" => app.status.confidence
-              ),
-              "history_count" => length(app.history.entries),
-              "output_lines" => length(app.output.lines),
-              "input_buffer" => app.input.buffer
-          );
-          transition="screen_rendered")
-end
-
-# ── Input handling ─────────────────────────────────────────────────────
-
-"""Process a line of input. Updates buffer, returns the completed line.
-Line-mode: treats each call as a complete line (Enter already pressed)."""
-function handle_input!(app::App, raw::String)
-    line = strip(raw)
-
-    emit!(app.frank, "jui.input", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("raw" => raw, "buffer" => line);
-          transition="input_received")
-
-    # Update input component state
-    app.input.buffer = ""
-    app.input.cursor = 0
-
-    # Add to history if non-empty
-    if !isempty(line)
-        entry = Dict{String,Any}(
-            "input" => line,
-            "output" => "",
-            "confidence" => app.status.confidence,
-            "ts" => Dates.format(now(), "yyyy-mm-ddTHH:MM:SS")
-        )
-        push!(app.history.entries, entry)
-
-        # Trim history if over limit
-        while length(app.history.entries) > app.history.max_entries
-            popfirst!(app.history.entries)
-        end
-
-        emit!(app.frank, "jui.history", FRANK.STATE_TRANSITION,
-              Dict{String,Any}("action" => "append",
-                               "entry" => entry,
-                               "total" => length(app.history.entries));
-              transition="history_appended")
-    end
-
-    return line
-end
-
-"""Append output text to the output panel."""
-function append_output!(app::App, text::String)
-    for line in split(text, '\n')
-        push!(app.output.lines, String(line))
-    end
-
-    # Trim to max_lines
-    while length(app.output.lines) > app.output.max_lines
-        popfirst!(app.output.lines)
-    end
-
-    emit!(app.frank, "jui.output", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("action" => "append",
-                           "new_text" => text,
-                           "total_lines" => length(app.output.lines));
-          transition="output_updated")
-end
-
-"""Update the status bar fields."""
-function update_status!(app::App; mode::Union{String,Nothing}=nothing,
-                        model::Union{String,Nothing}=nothing,
-                        wiq::Union{Float64,Nothing}=nothing,
-                        confidence::Union{Float64,Nothing}=nothing)
-    mode !== nothing && (app.status.mode = mode)
-    model !== nothing && (app.status.model = model)
-    wiq !== nothing && (app.status.wiq_score = wiq)
-    confidence !== nothing && (app.status.confidence = confidence)
-
-    emit!(app.frank, "jui.status", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("mode" => app.status.mode, "model" => app.status.model,
-                           "wiq" => app.status.wiq_score,
-                           "confidence" => app.status.confidence);
-          transition="status_updated")
-end
-
-# ── Main loop ──────────────────────────────────────────────────────────
-
-"""Main event loop. Reads stdin line-by-line, renders, loops until exit/quit."""
-function run!(app::App)
-    app.running = true
-
-    emit!(app.frank, "jui.app", FRANK.STATE_TRANSITION,
-          Dict{String,Any}("action" => "start", "mode" => app.status.mode);
-          transition="running")
-
-    # Initial render
-    clear_screen!()
-    append_output!(app, "Igor TUI ready. Type commands or 'exit' to quit.")
-    render_screen!(app)
-
-    try
-        while app.running
-            # Position cursor at input area for readline
-            rows, cols = term_size()
-            # Move cursor to input line content area (after prompt + cursor indicator)
-            # We just let Julia's readline handle cursor positioning on its own line
-            # Print prompt on a fresh line below the TUI frame
-            print(stdout, "\r")
-            set_color!(fg=:bright_amber)
-            print(stdout, app.input.prompt)
-            reset_color!()
-            flush(stdout)
-
-            # Read a line from stdin
-            raw = try
-                readline(stdin)
-            catch e
-                if e isa EOFError || e isa InterruptException
-                    ""
-                else
-                    rethrow(e)
-                end
-            end
-
-            # EOF check
-            if isempty(raw) && eof(stdin)
-                app.running = false
-                break
-            end
-
-            # Process input
-            line = handle_input!(app, raw)
-
-            # Check for exit commands
-            if line in ("exit", "quit", "q")
-                app.running = false
-                append_output!(app, "Shutting down...")
-                render_screen!(app)
-                break
-            end
-
-            # For now, echo input as output (JUI is just the UI framework,
-            # the brain layer will replace this with actual command translation)
-            if !isempty(line)
-                append_output!(app, "> $(line)")
-            end
-
-            # Re-render
-            clear_screen!()
-            render_screen!(app)
-        end
-    catch e
-        if !(e isa InterruptException)
-            rethrow(e)
-        end
-    finally
-        # Restore terminal
-        reset_color!()
-        clear_screen!()
-        move_cursor!(1, 1)
-        println(stdout, "Igor exited.")
-        flush(stdout)
-
-        emit!(app.frank, "jui.app", FRANK.STATE_TRANSITION,
-              Dict{String,Any}("action" => "shutdown",
-                               "history_count" => length(app.history.entries),
-                               "output_lines" => length(app.output.lines));
-              transition="shutdown")
-
-        app.running = false
-    end
-end
-
-end # module

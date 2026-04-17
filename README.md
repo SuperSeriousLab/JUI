@@ -1,81 +1,68 @@
 # JUI — AI-First Julia TUI Framework
 
-JUI is a world-class, AI-agent-debuggable TUI framework for Julia. Every state
-change emits a structured debug event via the FRANK protocol so AI agents (and
-humans) can inspect live component state, replay event sequences, and build
-deterministic TUI tests without mocking the terminal.
+JUI is a world-class, AI-agent-debuggable TUI framework for Julia. It is a hard
+fork of [Tachikoma.jl](https://github.com/kahliburke/Tachikoma.jl) (MIT,
+Kahli Burke), adopting its rendering substrate — cell-grid, layout solver, 30+
+widgets, TaskQueue, TestBackend, animation, sixel/kitty graphics — as a stable
+base on which JUI adds an AI-agent-first layer.
+
+## What JUI Adds (Phases 2–4)
+
+- **FRANK instrumentation**: optional weak dependency; all state changes emit
+  structured debug events when FRANK is loaded. Zero overhead otherwise.
+- **AppState serialization**: pure data struct, JSON-serializable, prerequisite
+  for ET snapshots.
+- **ET-Transport**: always-on Unix socket (local) + TCP (remote) in a single
+  build, no mode switch.
+- **Agent attach hooks**: agents subscribe to FRANK event stream, send synthetic
+  input, drive deterministic TUI tests.
 
 ## Architecture
 
 ```
 Application
-  └── App (render_screen!)
-        ├── OutputComponent   — scrollable text panel
-        ├── HistoryPanel      — past command log with confidence coloring
-        ├── StatusBar         — mode / model / custom key-value indicators
-        └── InputComponent    — prompt + input buffer
-              ↕ stderr JSONL
-           FRANK (debug protocol — optional weak dep in Phase 2)
+  └── JUI framework
+        ├── Cell-grid renderer, layout solver     [Tachikoma substrate, MIT]
+        ├── Widget library (30+ widgets)          [Tachikoma substrate, MIT]
+        ├── TaskQueue, TestBackend, animation     [Tachikoma substrate, MIT]
+        └── AI-agent layer (Phase 2+):
+              ├── FRANK (optional weak dep)       [JUI addition, Apache 2.0]
+              ├── AppState serialization          [JUI addition, Apache 2.0]
+              ├── ET-Transport                    [JUI addition, Apache 2.0]
+              └── Agent attach hooks              [JUI addition, Apache 2.0]
 ```
 
-## FRANK Protocol
+## Fork History
 
-FRANK (Forensic Runtime ANalytics Kit) emits structured events to stderr as
-JSONL. Each event carries:
+JUI is a hard fork of Tachikoma.jl @ commit `2271069`, forked 2026-04-17.
 
-```json
-{"ts": 1776260000, "source": "jui.input", "level": "STATE_TRANSITION",
- "payload": {"prompt": "app> ", "buffer": "ls", "cursor": 2},
- "transition": "render"}
-```
-
-Consumers can subscribe to the stderr stream to:
-- Inspect live component state during development
-- Drive automated TUI tests (send synthetic input, assert events)
-- Record and replay interaction sessions
-
-FRANK emits zero overhead when not loaded (Phase 2 goal — currently a hard dep).
+Tachikoma.jl is MIT licensed (Kahli Burke). The MIT license text is in
+`LICENSE-MIT`. Full attribution is in `NOTICE`. JUI additions are Apache 2.0
+(see `LICENSE`). All files originating from Tachikoma.jl retain their original
+MIT copyright headers.
 
 ## Quickstart
 
 ```julia
 using JUI
-using FRANK  # optional in Phase 2; currently required
 
-app = App(model="qwen3-coder:30b", mode="normal")
-run!(app)
+# Implement the Model protocol
+mutable struct MyModel <: JUI.Model
+    quit::Bool
+end
+
+JUI.should_quit(m::MyModel) = m.quit
+JUI.view(m::MyModel, frame::JUI.Frame) = JUI.render(JUI.Block(title="Hello JUI"), frame.area, frame.buf)
+function JUI.update!(m::MyModel, evt::JUI.Event)
+    evt isa JUI.KeyEvent && evt.char == 'q' && (m.quit = true)
+end
+
+JUI.app(MyModel(false))
 ```
-
-### Programmatic use (no event loop)
-
-```julia
-app = App()
-append_output!(app, "Hello from JUI")
-update_status!(app; mode="debug", confidence=0.92)
-line = handle_input!(app, "list files")
-render_screen!(app)
-```
-
-## Components
-
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `InputComponent` | mutable struct | Prompt + input buffer + cursor |
-| `OutputComponent` | mutable struct | Scrollable text output (tail mode) |
-| `StatusBar` | mutable struct | Mode/model/WIQ/confidence indicators |
-| `HistoryPanel` | mutable struct | Past command log with confidence coloring |
-
-## Color Palette
-
-JUI uses an amber-on-dark-grey aesthetic (ANSI 256-color). Named colors:
-`:amber`, `:dark_amber`, `:bright_amber`, `:dark_grey`, `:mid_grey`,
-`:light_grey`, `:orange` — plus standard `:red` / `:green` / `:yellow` for
-confidence gating.
 
 ## Development
 
 ```bash
-# Clone
 git clone http://192.168.14.77:3000/eidos/JUI
 cd JUI
 
@@ -89,17 +76,17 @@ See `ROADMAP.yaml` for the machine-readable phase plan.
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | Extracted from Igor monorepo | complete |
-| 2 | Generalize primitives + optional FRANK | not started |
-| 3 | Publish to eidos Julia registry | not started |
-
-## Documentation
-
-| Document | Purpose |
-|----------|---------|
-| `CLAUDE.md` | Claude Code instructions + design rules |
-| `ROADMAP.yaml` | Machine-readable project phases |
+| 1 | Tachikoma.jl hard fork baseline | complete |
+| 2a | AppState pure struct | not started |
+| 2b | Renderer decoupled | not started |
+| 2c | FRANK instrumentation + agent hooks | not started |
+| 3 | ET-Transport | not started |
+| 4 | eidos Julia registry publish | not started |
 
 ## License
 
-Apache-2.0
+JUI additions: Apache-2.0 (see `LICENSE`)
+
+Tachikoma.jl substrate: MIT (see `LICENSE-MIT`)
+
+Full attribution in `NOTICE`.
