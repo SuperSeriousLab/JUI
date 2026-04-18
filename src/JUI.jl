@@ -30,6 +30,7 @@ include("sixel_image.jl")
 include("widgets/blockcanvas.jl")
 include("app.jl")
 include("transport/session_server.jl") # Phase 3 chunk 3c: session pump + run_et!/run_tcp! (after app.jl: uses Model)
+include("transport/client.jl")         # thin remote client: TCP+TLS → ANSI render loop
 include("test_backend.jl")
 include("paged/Paged.jl")       # PagedDataTable submodule
 using .Paged                    # re-export all Paged symbols
@@ -252,7 +253,7 @@ export # Core types
        SessionServer,
        start_session_unix_server, start_session_tcp_server,
        stop_session_server!,
-       run_et!, run_tcp!
+       run_et!, run_tcp!, run_client
 
 # ── Precompilation workload ──────────────────────────────────────────
 @compile_workload begin

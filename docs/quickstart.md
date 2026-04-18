@@ -46,7 +46,7 @@ end
 
 # Render function: write widgets into the Buffer
 function render!(buf::JUI.Buffer, state::Counter)
-    JUI.text!(buf, 1, 1, "Count: $(state.n)  (press q to quit, +/- to change)")
+    JUI.set_string!(buf, 1, 1, "Count: $(state.n)  (press q to quit, +/- to change)")
 end
 
 # Input handler: return updated state or nothing to quit

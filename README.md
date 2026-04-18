@@ -100,8 +100,8 @@ end
 JUI.should_quit(c::Counter) = c.quit
 
 function JUI.view(c::Counter, frame::JUI.Frame)
-    JUI.render(JUI.Block(title = "Counter — +/- / q"), frame.area, frame.buf)
-    JUI.text!(frame.buf, 2, 2, "Count: $(c.n)")
+    JUI.render(JUI.Block(title = "Counter — +/- / q"), frame.area, frame.buffer)
+    JUI.set_string!(frame.buffer, 2, 2, "Count: $(c.n)")
 end
 
 function JUI.update!(c::Counter, evt::JUI.Event)
