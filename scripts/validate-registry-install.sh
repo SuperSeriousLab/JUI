@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REGISTRY_URL="http://192.168.14.77:3000/eidos/JuliaRegistry.git"
+REGISTRY_URL_HTTP="http://192.168.14.77:3000/eidos/JuliaRegistry.git"
 JULIA="/home/js/.local/julia-1.11.5/bin/julia"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Pre-clone registry to avoid Julia LibGit2 credential issues
+REGISTRY_CACHE=$(mktemp -d)
+trap "rm -rf '$REGISTRY_CACHE'" EXIT
+if git clone --depth 1 "$REGISTRY_URL_HTTP" "$REGISTRY_CACHE" > /dev/null 2>&1; then
+    REGISTRY_URL="file://$REGISTRY_CACHE"
+else
+    echo "WARNING: Could not pre-clone registry, will attempt direct HTTP URL"
+    REGISTRY_URL="$REGISTRY_URL_HTTP"
+fi
 
 # Export git environment variables to avoid prompts
 export GIT_TERMINAL_PROMPT=0
