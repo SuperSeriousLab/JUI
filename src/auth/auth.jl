@@ -89,9 +89,10 @@ end
 export AuthGate, UnixPeerGate, TCPTokenGate, authorize,
        # paths.jl
        jui_runtime_dir, socket_path, token_path, ensure_secure_file, getuid,
+       jui_config_dir, cert_path, key_path,
        # peer.jl
        peer_uid, check_peer_uid,
        # token.jl
        generate_token, write_token, load_token, compare_tokens_ct,
        # tls.jl
-       ensure_server_cert, spki_verify
+       ensure_server_cert, spki_hash, spki_verify, spki_unpin!, pin_store_dir

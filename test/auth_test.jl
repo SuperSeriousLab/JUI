@@ -288,8 +288,52 @@ end
         @test_throws ErrorException authorize(_TestGate(), "anything")
     end
 
-    @testset "TLS stubs throw as expected" begin
-        @test_throws ErrorException ensure_server_cert()
-        @test_throws ErrorException spki_verify("host", "hash")
+end
+
+@testset "Phase 3: TLS + SPKI" begin
+    tmpdir = mktempdir()
+    withenv("XDG_CONFIG_HOME" => tmpdir) do
+        @testset "ensure_server_cert creates files with correct perms" begin
+            (cert, key) = ensure_server_cert()
+            @test isfile(cert)
+            @test isfile(key)
+            @test (stat(key).mode & 0o777) == 0o600
+        end
+
+        @testset "SPKI hash is deterministic for same key" begin
+            (cert, _key) = ensure_server_cert()
+            h1 = spki_hash(cert)
+            h2 = spki_hash(cert)
+            @test h1 == h2
+            @test length(h1) == 64  # SHA-256 hex = 64 chars
+            @test all(c -> c in "0123456789abcdef", h1)
+        end
+
+        @testset "ensure_server_cert is idempotent (returns same paths)" begin
+            (cert1, key1) = ensure_server_cert()
+            (cert2, key2) = ensure_server_cert()
+            @test cert1 == cert2
+            @test key1  == key2
+        end
+
+        @testset "TOFU pin store — first connect writes pin" begin
+            server = "test.local:9999"
+            test_hash = "a" ^ 64
+            @test spki_verify(server, test_hash) == true   # TOFU write
+            @test spki_verify(server, test_hash) == true   # replay, still matches
+            @test spki_verify(server, "b" ^ 64)  == false  # mismatch
+        end
+
+        @testset "spki_unpin! removes pin and returns correct Bool" begin
+            server = "test.local:9999"
+            test_hash = "a" ^ 64
+            # Ensure pin exists (may have been written by prior testset)
+            spki_verify(server, test_hash)
+            @test spki_unpin!(server) == true
+            @test spki_unpin!(server) == false  # already gone
+            @test spki_verify(server, test_hash) == true   # new TOFU after unpin
+            # Clean up
+            spki_unpin!(server)
+        end
     end
 end

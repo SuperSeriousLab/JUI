@@ -18,7 +18,8 @@
 # per docs/phase-3-auth-design.md §A.
 # ─────────────────────────────────────────────────────────────────────────
 
-export jui_runtime_dir, socket_path, token_path, ensure_secure_file, getuid
+export jui_runtime_dir, socket_path, token_path, ensure_secure_file, getuid,
+       jui_config_dir, cert_path, key_path
 
 """
     getuid() → Int
@@ -115,6 +116,48 @@ function ensure_secure_file(path::String, mode::UInt16 = UInt16(0o600))::Nothing
         error("JUI auth: failed to set mode $(string(mode & 0o777, base=8)) on $path (got $(string(actual & 0o777, base=8)))")
     end
     return nothing
+end
+
+# ── TLS config paths (Phase 3 chunk 2) ────────────────────────────────────
+
+"""
+    jui_config_dir() → String
+
+Return the JUI config directory path:
+- `\$XDG_CONFIG_HOME/jui/` when XDG_CONFIG_HOME is set
+- `~/.config/jui/` otherwise
+
+Creates the directory with mode 0700 if it does not exist.
+"""
+function jui_config_dir()::String
+    base = get(ENV, "XDG_CONFIG_HOME", "")
+    if isempty(base)
+        base = joinpath(homedir(), ".config")
+    end
+    dir = joinpath(base, "jui")
+    if !isdir(dir)
+        mkpath(dir)
+        chmod(dir, 0o700)
+    end
+    return dir * "/"
+end
+
+"""
+    cert_path() → String
+
+Return the TLS certificate file path: `\$XDG_CONFIG_HOME/jui/server.crt`.
+"""
+function cert_path()::String
+    return jui_config_dir() * "server.crt"
+end
+
+"""
+    key_path() → String
+
+Return the TLS private key file path: `\$XDG_CONFIG_HOME/jui/server.key`.
+"""
+function key_path()::String
+    return jui_config_dir() * "server.key"
 end
 
 # ── Internal helpers ───────────────────────────────────────────────────────

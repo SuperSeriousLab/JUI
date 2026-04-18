@@ -227,12 +227,13 @@ export # Core types
        write_tach, load_tach, compress_dead_space,
        # Agent attach API (FRANK-present path; stubs raise error when FRANK absent)
        attach_agent, detach_agent!,
-       # Auth module (Phase 3 chunk 1)
+       # Auth module (Phase 3 chunk 1 + chunk 2)
        AuthGate, UnixPeerGate, TCPTokenGate, authorize,
        jui_runtime_dir, socket_path, token_path, ensure_secure_file, getuid,
+       jui_config_dir, cert_path, key_path,
        peer_uid, check_peer_uid,
        generate_token, write_token, load_token, compare_tokens_ct,
-       ensure_server_cert, spki_verify
+       ensure_server_cert, spki_hash, spki_verify, spki_unpin!, pin_store_dir
 
 # ── Precompilation workload ──────────────────────────────────────────
 @compile_workload begin
