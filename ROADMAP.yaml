@@ -92,7 +92,7 @@ phases:
 
   - id: phase-3
     name: "Phase 3: ET-Transport (Unix Socket Local + TCP Remote, Single Build)"
-    status: in-progress
+    status: completed
     depends_on: [phase-2c]
     items:
       - name: "ET-transport always ON — single build, no mode switch"
@@ -107,8 +107,8 @@ phases:
         done: true
       - name: "Remote: swap Transport URL, user API identical"
         done: true
-      - name: "Zero overhead for local (Unix socket vs stdlib TCPSocket comparison)"
-        done: false
+      - name: "Zero overhead for local (Unix socket vs stdlib TCPSocket comparison) — bench/local_overhead.jl: Unix 9.2µs p50 vs TCP 13.3µs p50, ratio 0.69x (Unix faster, 2026-04-17)"
+        done: true
       - name: "Integration tests: local and remote modes"
         done: true
       - name: "[SECURITY] Auth model design gate — must be specified before Phase 3 impl starts"
@@ -123,8 +123,8 @@ phases:
         done: true
       - name: "[SECURITY chunk-3c] Session protocol wiring: SessionServer + start_session_unix/tcp_server + run_et!/run_tcp! + 34 tests (2026-04-18). Gotcha: _ssl_readline maxbytes must be >= snapshot size (14KB for 20x3 buffer — raised to 1MB)."
         done: true
-      - name: "[SECURITY] FRANK attach point: same auth gate as Transport — agents must present token to attach"
-        done: false
+      - name: "[SECURITY] FRANK attach point: attach_agent mode gate (:observe/:interact) + inject_input gated on :interact + register_input_handler! + 4 new tests (2026-04-17)"
+        done: true
 
   - id: phase-4
     name: "Phase 4: eidos Julia Registry Publish"

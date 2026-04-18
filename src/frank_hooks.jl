@@ -63,3 +63,16 @@ function detach_agent!(sid)
     error("FRANK not loaded — agent attach unavailable. " *
           "Install FRANK package or use Pkg.develop(path=\"../FRANK\").")
 end
+
+"""
+    inject_input(subscription_id, event)
+
+Inject an input event into a session on behalf of an authorised agent.
+The subscription must have been created with `mode=:interact`; `:observe`
+subscriptions will receive an `AuthError`.
+
+Requires FRANK to be loaded. In the FRANK-absent path, raises an error.
+"""
+function inject_input(subscription_id, event)
+    error("FRANK not loaded — inject_input unavailable.")
+end

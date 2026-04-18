@@ -33,6 +33,11 @@
         @test_throws ErrorException JUI.detach_agent!(nothing)
     end
 
+    # ── inject_input stub raises error when FRANK absent ─────────────────
+    @testset "inject_input absent" begin
+        @test_throws ErrorException JUI.inject_input(nothing, nothing)
+    end
+
     # ── Zero allocation guarantee on stub hooks ───────────────────────────
     @testset "stub hooks allocate nothing" begin
         @test @allocated(JUI.frank_session_created(nothing)) == 0

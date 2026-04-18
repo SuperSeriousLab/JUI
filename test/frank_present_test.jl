@@ -206,6 +206,38 @@ const _ext = Base.get_extension(JUI, :JUIFRANKExt)
         end
     end
 
+    # ── Phase 3: attach mode gate ─────────────────────────────────────────
+    @testset "Phase 3: attach mode gate" begin
+        events = []
+        app = nothing
+        s = T.new_session(app)
+
+        # 1. Default mode is :observe (no kwarg)
+        sid_obs = JUI.attach_agent(s.id, evt -> push!(events, evt))
+        # 2. Explicit :observe
+        sid_obs2 = JUI.attach_agent(s.id, evt -> nothing; mode=:observe)
+        # 3. Explicit :interact
+        sid_int = JUI.attach_agent(s.id, evt -> nothing; mode=:interact)
+        # 4. Invalid mode throws AuthError
+        @test_throws JUI.AuthError JUI.attach_agent(s.id, evt -> nothing; mode=:admin)
+
+        # 5. inject_input with :observe subscription → AuthError
+        evt = T.KeyEvent(:char, 'x', T.key_press)
+        @test_throws JUI.AuthError JUI.inject_input(sid_obs, evt)
+
+        # 6. inject_input with :interact → routes to session.injectors
+        received = Ref{Any}(nothing)
+        JUI.register_input_handler!(s, e -> received[] = e)
+        JUI.inject_input(sid_int, evt)
+        @test received[] === evt
+
+        # Cleanup
+        JUI.detach_agent!(sid_obs)
+        JUI.detach_agent!(sid_obs2)
+        JUI.detach_agent!(sid_int)
+        T.close_session!(s.id)
+    end
+
     # ── attach_agent: per-session filter ─────────────────────────────────
     @testset "attach_agent present — per-session filter" begin
         with_capture() do _io

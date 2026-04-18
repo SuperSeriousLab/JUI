@@ -229,7 +229,9 @@ export # Core types
        # .tach format
        write_tach, load_tach, compress_dead_space,
        # Agent attach API (FRANK-present path; stubs raise error when FRANK absent)
-       attach_agent, detach_agent!,
+       attach_agent, detach_agent!, inject_input,
+       # Session input handler registration (Phase 3 closeout)
+       register_input_handler!,
        # Auth module (Phase 3 chunk 1 + chunk 2)
        AuthGate, UnixPeerGate, TCPTokenGate, authorize,
        AuthError,

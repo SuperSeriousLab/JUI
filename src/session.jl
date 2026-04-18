@@ -65,6 +65,7 @@ mutable struct Session
     last_buffer::Union{Buffer, Nothing}  # diff base; nothing ⇒ force snapshot
     created_at::Float64
     last_activity::Float64
+    injectors::Vector{Function}       # Phase 3: handlers called by inject_input
 end
 
 # ── Registry ──────────────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ return the Session. Thread-safe.
 function new_session(app)::Session
     id  = SessionID(randstring(['0':'9'; 'a':'f'], 32))
     now = time()
-    s   = Session(id, app, nothing, now, now)
+    s   = Session(id, app, nothing, now, now, Function[])
     lock(SESSIONS_LOCK) do
         SESSIONS[id] = s
     end
@@ -141,4 +142,18 @@ function list_sessions()::Vector{SessionID}
     lock(SESSIONS_LOCK) do
         collect(keys(SESSIONS))
     end
+end
+
+"""
+    register_input_handler!(session::Session, handler::Function)
+
+Register an input handler for a session. Called when an authorised agent
+injects input via `inject_input(subscription_id, event)`.
+
+Multiple handlers may be registered; they are called in registration order.
+Each handler receives the raw event object as its sole argument.
+"""
+function register_input_handler!(session::Session, handler::Function)
+    push!(session.injectors, handler)
+    return nothing
 end
