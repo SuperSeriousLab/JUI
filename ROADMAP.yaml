@@ -118,7 +118,9 @@ phases:
       - name: "[SECURITY chunk-3a] Unix socket transport: chmod 600 + peer UID gate (SO_PEERCRED) + FRANK auth.ok/auth.reject events + 7 tests (2026-04-18)"
         done: true
       - name: "[SECURITY] TCP transport: token auth (bearer) minimum; mTLS preferred — no unauthenticated TCP binding"
-        done: false
+        done: true
+      - name: "[SECURITY chunk-3b] TCP+TLS transport: bearer token + SPKI TOFU + deny-by-default + FRANK auth.ok/auth.reject events + 8 tests (2026-04-18). mTLS deferred per §10 — bearer+SPKI is Phase 3 impl. TLS lib: MbedTLS.jl (RSA-2048 certs; ed25519 unsupported by MbedTLS 2.x). Gotcha: readline() hangs on SSLContext — use _ssl_readline() (read-1-byte loop)."
+        done: true
       - name: "[SECURITY] FRANK attach point: same auth gate as Transport — agents must present token to attach"
         done: false
 

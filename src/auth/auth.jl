@@ -82,6 +82,26 @@ function authorize(gate::TCPTokenGate, presented_token::String)
     return compare_tokens_ct(gate.token, presented_token)
 end
 
+# ── AuthError ──────────────────────────────────────────────────────────────
+
+"""
+    AuthError <: Exception
+
+Thrown by the TCP transport on the client side when authentication fails.
+Conditions that raise AuthError:
+- SPKI pin mismatch (MITM or cert rotation)
+- Server closed connection during auth handshake (token rejected)
+- Malformed or unexpected server auth reply
+- TLS handshake failure during connect_tcp
+"""
+struct AuthError <: Exception
+    msg::String
+end
+
+Base.showerror(io::IO, e::AuthError) = print(io, "AuthError: ", e.msg)
+
+export AuthError
+
 # ── Re-exports ─────────────────────────────────────────────────────────────
 # All public symbols from submodules are re-exported here so callers only
 # need to load auth/auth.jl.

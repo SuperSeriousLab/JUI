@@ -38,9 +38,14 @@ export ensure_server_cert, spki_hash, spki_verify, spki_unpin!, pin_store_dir
 # ── Constants ──────────────────────────────────────────────────────────────
 
 const _CERT_VALIDITY_DAYS = 3650   # 10 years — long-lived, renewed via manual rotation
-const _KEY_ALGO            = "ed25519"
+# RSA 2048 instead of ed25519: MbedTLS.jl ships MbedTLS 2.x which does not support
+# the ed25519 OID for X.509 certificate parsing (MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG).
+# RSA 2048 is universally supported by MbedTLS 2.x/3.x and OpenSSL alike.
+# SPKI TOFU pinning is unaffected — SHA-256 of SPKI DER works the same for both key types.
+const _KEY_ALGO            = "rsa"
+const _KEY_BITS            = "2048"
 const _CERT_SUBJECT        = "/CN=jui.local"
-const _CERT_SAN            = "subjectAltName=DNS:jui.local,IP:0.0.0.0"
+const _CERT_SAN            = "subjectAltName=DNS:jui.local,IP:127.0.0.1"
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -55,9 +60,9 @@ Files:
 - `\$XDG_CONFIG_HOME/jui/server.crt` — certificate, mode 0644
 
 Certificate properties:
-- Algorithm: ed25519
+- Algorithm: RSA 2048 (MbedTLS 2.x does not support ed25519 OID in X.509)
 - Validity: $(string(_CERT_VALIDITY_DAYS)) days
-- SAN: DNS:jui.local, IP:0.0.0.0
+- SAN: DNS:jui.local, IP:127.0.0.1
 - Model: TOFU — hostname verification is replaced by SPKI pinning
 
 If both files already exist *and* the key has mode 0600, returns immediately
@@ -86,9 +91,9 @@ function ensure_server_cert()::Tuple{String,String}
     tmp_cert = joinpath(tmp_dir, "server.crt")
 
     try
-        # Step 1: generate ed25519 private key
-        ret = run(ignorestatus(`openssl genpkey -algorithm $_KEY_ALGO -out $tmp_key`))
-        ret.exitcode == 0 || error("JUI TLS: openssl genpkey failed (exit $(ret.exitcode))")
+        # Step 1: generate RSA private key
+        ret = run(ignorestatus(`openssl genrsa -out $tmp_key $_KEY_BITS`))
+        ret.exitcode == 0 || error("JUI TLS: openssl genrsa failed (exit $(ret.exitcode))")
 
         # Step 2: self-sign with SAN
         ret = run(ignorestatus(`openssl req -x509 -new -key $tmp_key -out $tmp_cert

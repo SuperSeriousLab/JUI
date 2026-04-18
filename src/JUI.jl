@@ -16,6 +16,7 @@ include("session.jl")           # after wire.jl: Session holds Buffer; SessionID
 include("frank_hooks.jl")       # Phase 2c: @inline no-op stubs; overridden by JUIFRANKExt when FRANK is loaded
 include("auth/auth.jl")         # Phase 3 chunk 1: auth module (XDG paths, peer UID, token, AuthGate)
 include("transport/unix.jl")   # Phase 3 chunk 3a: Unix socket transport with peer-UID gate
+include("transport/tcp.jl")    # Phase 3 chunk 3b: TCP+TLS transport with bearer token + SPKI TOFU
 include("protocol.jl")          # after session.jl + wire.jl: snapshot/diff/input helpers
 include("scripting.jl")
 include("async.jl")
@@ -230,6 +231,7 @@ export # Core types
        attach_agent, detach_agent!,
        # Auth module (Phase 3 chunk 1 + chunk 2)
        AuthGate, UnixPeerGate, TCPTokenGate, authorize,
+       AuthError,
        jui_runtime_dir, socket_path, token_path, ensure_secure_file, getuid,
        jui_config_dir, cert_path, key_path,
        peer_uid, check_peer_uid,
@@ -238,7 +240,11 @@ export # Core types
        # FRANK auth hooks (Phase 3 chunk 3a — overridden by JUIFRANKExt when FRANK loaded)
        frank_auth_ok, frank_auth_reject,
        # Unix socket transport (Phase 3 chunk 3a)
-       UnixServer, start_unix_server, stop_unix_server!, connect_unix
+       UnixServer, start_unix_server, stop_unix_server!, connect_unix,
+       # TCP+TLS transport (Phase 3 chunk 3b)
+       TCPServer, start_tcp_server, stop_tcp_server!, connect_tcp,
+       # Auth handshake wire types (Phase 3 chunk 3b)
+       WireAuthMessage, WireAuthOkMessage
 
 # ── Precompilation workload ──────────────────────────────────────────
 @compile_workload begin
