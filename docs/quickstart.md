@@ -6,20 +6,33 @@ and an agent attach API built in.
 
 ## Install from eidos Registry
 
+**Prerequisites:**
+1. Git credential helper configured for `192.168.14.77` (standard on eidos dev boxes — see `~/.claude/skills/forgejo/SKILL.md`)
+2. **Set `JULIA_PKG_USE_CLI_GIT=true`** — Julia's built-in LibGit2 does NOT use the system git credential helper. Setting this env var makes Pkg shell out to the `git` CLI, which uses the helper correctly.
+
+```bash
+# Add to ~/.bashrc or set per-invocation:
+export JULIA_PKG_USE_CLI_GIT=true
+```
+
 ```julia
 using Pkg
 
-# Add the eidos private registry once per Julia installation
+# Add General registry first (for transitive deps: JSON3, StructTypes, etc.)
+Pkg.Registry.add("General")
+
+# Add the eidos registry
 Pkg.Registry.add(Pkg.RegistrySpec(
     url = "http://192.168.14.77:3000/eidos/JuliaRegistry.git"
 ))
 
-# Install JUI (pulls FRANK automatically as a weak dep if you add it)
-Pkg.add("JUI")
-
-# Optional: install FRANK to enable session diagnostics
-Pkg.add("FRANK")
+# Install — FRANK is an optional weak dep, add it to enable diagnostics
+Pkg.add(["JUI", "FRANK"])
 ```
+
+**Verified install flow** (clean depot, 2026-04-18): `JULIA_PKG_USE_CLI_GIT=true` + General registry + eidos registry → `Pkg.add(["JUI", "FRANK"])` → JUI v0.2.0 + FRANK v0.2.0 installed, JUIFRANKExt auto-activates. ~3 minutes on fresh install (precompilation of Tachikoma substrate).
+
+**Without `JULIA_PKG_USE_CLI_GIT=true`**: Julia's LibGit2 hangs on credential prompts because Forgejo's `REQUIRE_SIGNIN_VIEW` gates even public repos. Workaround: pre-clone the registry and packages via `git` CLI first, then use `file://` URLs — see `scripts/validate-registry-install.sh`.
 
 ## Minimal App (Tachikoma-style, local)
 
