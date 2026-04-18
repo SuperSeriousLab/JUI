@@ -92,25 +92,25 @@ phases:
 
   - id: phase-3
     name: "Phase 3: ET-Transport (Unix Socket Local + TCP Remote, Single Build)"
-    status: not-started
+    status: in-progress
     depends_on: [phase-2c]
     items:
       - name: "ET-transport always ON — single build, no mode switch"
-        done: false
+        done: true
       - name: "Transport abstraction: Unix socket for local, TCP for remote"
-        done: false
+        done: true
       - name: "SessionID + AppState snapshot on connect (framebuffer diff for reconnect)"
-        done: false
+        done: true
       - name: "Event-replay optional (framebuffer diff preferred for ET)"
-        done: false
+        done: true
       - name: "run!() spawns server + local client automatically"
-        done: false
+        done: true
       - name: "Remote: swap Transport URL, user API identical"
-        done: false
+        done: true
       - name: "Zero overhead for local (Unix socket vs stdlib TCPSocket comparison)"
         done: false
       - name: "Integration tests: local and remote modes"
-        done: false
+        done: true
       - name: "[SECURITY] Auth model design gate — must be specified before Phase 3 impl starts"
         done: true
       - name: "[SECURITY chunk-1] Auth module infrastructure: src/auth/ (paths, peer, token, AuthGate, tls-stub) + 39 tests (2026-04-17)"
@@ -120,6 +120,8 @@ phases:
       - name: "[SECURITY] TCP transport: token auth (bearer) minimum; mTLS preferred — no unauthenticated TCP binding"
         done: true
       - name: "[SECURITY chunk-3b] TCP+TLS transport: bearer token + SPKI TOFU + deny-by-default + FRANK auth.ok/auth.reject events + 8 tests (2026-04-18). mTLS deferred per §10 — bearer+SPKI is Phase 3 impl. TLS lib: MbedTLS.jl (RSA-2048 certs; ed25519 unsupported by MbedTLS 2.x). Gotcha: readline() hangs on SSLContext — use _ssl_readline() (read-1-byte loop)."
+        done: true
+      - name: "[SECURITY chunk-3c] Session protocol wiring: SessionServer + start_session_unix/tcp_server + run_et!/run_tcp! + 34 tests (2026-04-18). Gotcha: _ssl_readline maxbytes must be >= snapshot size (14KB for 20x3 buffer — raised to 1MB)."
         done: true
       - name: "[SECURITY] FRANK attach point: same auth gate as Transport — agents must present token to attach"
         done: false

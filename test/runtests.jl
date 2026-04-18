@@ -23,6 +23,7 @@ struct _DummyModel <: T.Model end
     include("auth_test.jl")
     include("transport_unix_test.jl")
     include("transport_tcp_test.jl")
+    include("transport_session_test.jl")
     include("test_core.jl")
     include("test_events.jl")
     include("test_colors.jl")

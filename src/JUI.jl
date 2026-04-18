@@ -15,9 +15,9 @@ include("wire.jl")              # after events.jl: InputEvent wire types need Ke
 include("session.jl")           # after wire.jl: Session holds Buffer; SessionID uses randstring
 include("frank_hooks.jl")       # Phase 2c: @inline no-op stubs; overridden by JUIFRANKExt when FRANK is loaded
 include("auth/auth.jl")         # Phase 3 chunk 1: auth module (XDG paths, peer UID, token, AuthGate)
-include("transport/unix.jl")   # Phase 3 chunk 3a: Unix socket transport with peer-UID gate
-include("transport/tcp.jl")    # Phase 3 chunk 3b: TCP+TLS transport with bearer token + SPKI TOFU
-include("protocol.jl")          # after session.jl + wire.jl: snapshot/diff/input helpers
+include("transport/unix.jl")           # Phase 3 chunk 3a: Unix socket transport with peer-UID gate
+include("transport/tcp.jl")            # Phase 3 chunk 3b: TCP+TLS transport with bearer token + SPKI TOFU
+include("protocol.jl")                 # after session.jl + wire.jl: snapshot/diff/input helpers
 include("scripting.jl")
 include("async.jl")
 include("resizable_layout.jl")
@@ -29,6 +29,7 @@ include("sixel_canvas.jl")
 include("sixel_image.jl")
 include("widgets/blockcanvas.jl")
 include("app.jl")
+include("transport/session_server.jl") # Phase 3 chunk 3c: session pump + run_et!/run_tcp! (after app.jl: uses Model)
 include("test_backend.jl")
 include("paged/Paged.jl")       # PagedDataTable submodule
 using .Paged                    # re-export all Paged symbols
@@ -244,7 +245,12 @@ export # Core types
        # TCP+TLS transport (Phase 3 chunk 3b)
        TCPServer, start_tcp_server, stop_tcp_server!, connect_tcp,
        # Auth handshake wire types (Phase 3 chunk 3b)
-       WireAuthMessage, WireAuthOkMessage
+       WireAuthMessage, WireAuthOkMessage,
+       # Session pump + ET/TCP run (Phase 3 chunk 3c)
+       SessionServer,
+       start_session_unix_server, start_session_tcp_server,
+       stop_session_server!,
+       run_et!, run_tcp!
 
 # ── Precompilation workload ──────────────────────────────────────────
 @compile_workload begin
