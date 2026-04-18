@@ -106,15 +106,15 @@ function _extract_fd(sock)::Cint
         return sock
     elseif sock isa Integer
         return Cint(sock)
+    elseif sock isa Base.RawFD
+        # RawFD is an opaque wrapper — reinterpret as Int32 to get the fd number.
+        return Cint(reinterpret(Int32, sock))
     end
-    # Julia Sockets.UnixSocket / TCPSocket: handle is a libuv handle.
-    # We need the raw OS fd via Base._fd or RawFD.
+    # Julia Base.PipeEndpoint / TCPSocket / Sockets types: libuv-backed handles.
+    # Base._fd(sock) returns a RawFD; extract the int via reinterpret.
     try
-        rfd = Base.RawFD(sock)
-        return Cint(rfd.fd)
-    catch end
-    try
-        return Cint(Base._fd(sock))
+        rfd = Base._fd(sock)
+        return Cint(reinterpret(Int32, rfd))
     catch end
     @warn "JUI auth: could not extract fd from $(typeof(sock))"
     return Cint(-1)

@@ -98,6 +98,22 @@ function JUI.frank_diff_emitted(session, cell_count)
     return nothing
 end
 
+# ── Auth event hooks (Phase 3 chunk 3a) ──────────────────────────────────
+
+function JUI.frank_auth_ok(session_id, details)
+    emit!(_emitter(), "jui.auth", FRANK.STATE_TRANSITION,
+          Dict{String,Any}("session_id" => session_id, "details" => details);
+          transition="ok")
+    return nothing
+end
+
+function JUI.frank_auth_reject(session_id, reason)
+    emit!(_emitter(), "jui.auth", FRANK.STATE_TRANSITION,
+          Dict{String,Any}("session_id" => session_id, "reason" => reason);
+          transition="reject")
+    return nothing
+end
+
 # ── Agent attach API ──────────────────────────────────────────────────────
 
 """

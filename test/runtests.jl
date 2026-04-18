@@ -21,6 +21,7 @@ struct _DummyModel <: T.Model end
         @warn "FRANK not in test env — skipping FRANK-present tests (items 4+7). Add FRANK to test/Project.toml to enable."
     end
     include("auth_test.jl")
+    include("transport_unix_test.jl")
     include("test_core.jl")
     include("test_events.jl")
     include("test_colors.jl")

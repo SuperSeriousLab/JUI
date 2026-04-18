@@ -115,8 +115,8 @@ phases:
         done: true
       - name: "[SECURITY chunk-1] Auth module infrastructure: src/auth/ (paths, peer, token, AuthGate, tls-stub) + 39 tests (2026-04-17)"
         done: true
-      - name: "[SECURITY] Unix socket: chmod 600 + peer UID validation on connect (reject non-owner)"
-        done: false
+      - name: "[SECURITY chunk-3a] Unix socket transport: chmod 600 + peer UID gate (SO_PEERCRED) + FRANK auth.ok/auth.reject events + 7 tests (2026-04-18)"
+        done: true
       - name: "[SECURITY] TCP transport: token auth (bearer) minimum; mTLS preferred — no unauthenticated TCP binding"
         done: false
       - name: "[SECURITY] FRANK attach point: same auth gate as Transport — agents must present token to attach"

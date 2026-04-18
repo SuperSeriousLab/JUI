@@ -34,6 +34,12 @@
 @inline frank_snapshot_sent(::Any, ::Any) = nothing    # session, buffer
 @inline frank_diff_emitted(::Any, ::Any) = nothing     # session, cell_count
 
+# ── Auth event hooks (Phase 3 chunk 3a) ──────────────────────────────────
+# Called on every Unix socket accept: ok (peer UID matched) or reject.
+# Overridden by ext/JUIFRANKExt.jl when FRANK is loaded; no-ops otherwise.
+@inline frank_auth_ok(::Any, ::Any) = nothing      # session_id, details::Dict
+@inline frank_auth_reject(::Any, ::Any) = nothing  # session_id, reason::Dict
+
 # ── Agent attach API stubs ────────────────────────────────────────────────
 # These raise informative errors in the FRANK-absent path.
 # JUIFRANKExt overrides them with real FRANK.subscribe/unsubscribe! calls.
