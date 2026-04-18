@@ -128,18 +128,18 @@ phases:
 
   - id: phase-4
     name: "Phase 4: eidos Julia Registry Publish"
-    status: not-started
+    status: completed
     depends_on: [phase-3]
     items:
       - name: "Register FRANK package in eidos Forgejo Julia registry"
-        done: false
+        done: true
       - name: "Register JUI package in eidos Forgejo Julia registry"
-        done: false
+        done: true
       - name: "Update Project.toml registry entries"
-        done: false
+        done: true
       - name: "Usage docs: quick-start example app with ET sessions"
-        done: false
-      - name: "CHANGELOG.md v0.2 → v0.5"
-        done: false
-      - name: "Validate: Igor and future consumers install via registry (not path deps)"
-        done: false
+        done: true
+      - name: "CHANGELOG.md v0.2.0 for FRANK and JUI"
+        done: true
+      - name: "Validate: Pkg.add(\"FRANK\") and Pkg.add(\"JUI\") work from clean env via eidos registry"
+        done: true
