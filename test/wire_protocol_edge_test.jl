@@ -179,17 +179,30 @@
     end
 
     # ── ColorRGBA with all alpha values ──────────────────────────────────
-    @testset "ColorRGBA boundary alphas (0 and 255)" begin
-        rect = T.Rect(1, 1, 2, 1)
-        buf  = T.Buffer(rect)
-        buf.content[1] = T.Cell('A', T.Style(fg=T.ColorRGBA(255, 0, 0, 0)))      # fully transparent
-        buf.content[2] = T.Cell('B', T.Style(fg=T.ColorRGBA(0, 255, 0, 255)))    # fully opaque
+    # Note: ColorRGBA is NOT a subtype of AbstractColor and cannot be placed
+    # in Style.fg. from_wire_color also declares return type ::AbstractColor,
+    # so we test WireColor encoding only (what wire.jl actually exercises).
+    @testset "ColorRGBA boundary alphas (0 and 255) via WireColor encoding" begin
+        # Fully transparent: alpha=0 — WireColor round-trip
+        rgba1 = T.ColorRGBA(255, 0, 0, 0)
+        wc1   = T.WireColor(rgba1)
+        @test wc1.kind == "rgba"
+        @test wc1.r == 0xff
+        @test wc1.g == 0x00
+        @test wc1.b == 0x00
+        @test wc1.a == 0x00
 
-        encoded = wire_encode(buf)
-        decoded = wire_decode(encoded)
+        # Fully opaque: alpha=255 — WireColor round-trip
+        rgba2 = T.ColorRGBA(0, 255, 0, 255)
+        wc2   = T.WireColor(rgba2)
+        @test wc2.kind == "rgba"
+        @test wc2.r == 0x00
+        @test wc2.g == 0xff
+        @test wc2.b == 0x00
+        @test wc2.a == 0xff
 
-        @test decoded.content[1].style.fg == T.ColorRGBA(255, 0, 0, 0)
-        @test decoded.content[2].style.fg == T.ColorRGBA(0, 255, 0, 255)
+        # ColorRGBA convenience constructors work correctly
+        @test T.ColorRGBA(128, 64, 32, 200) == T.ColorRGBA(0x80, 0x40, 0x20, 0xc8)
     end
 
 end
@@ -323,12 +336,12 @@ end
 
     # ── JSON missing required fields to wire_decode ──────────────────────
     @testset "JSON missing required fields" begin
-        # Missing area
-        bad_json = JSON3.write((content=T.WireCell[],))
+        # Missing area — only content present
+        bad_json = "{\"content\":[]}"
         @test_throws Exception wire_decode(bad_json)
 
-        # Missing content
-        bad_json2 = JSON3.write((area=T.Rect(1, 1, 1, 1),))
+        # Missing content — only area present
+        bad_json2 = "{\"area\":{\"x\":1,\"y\":1,\"width\":1,\"height\":1}}"
         @test_throws Exception wire_decode(bad_json2)
     end
 
@@ -340,9 +353,8 @@ end
 
         encoded = wire_encode(buf)
 
-        # Manually inject an extra field
-        obj = JSON3.read(encoded)
-        # JSON3 read should work fine with extra fields
+        # wire_decode on a valid-but-has-extra-fields string should succeed.
+        # We simply confirm the canonical round-trip works.
         decoded = wire_decode(encoded)
         @test decoded.area == rect
     end
@@ -443,34 +455,32 @@ end
         T.close_session!(s.id)
     end
 
-    # ── apply_diff! with out-of-bounds cell index → graceful error ────────
+    # ── apply_diff! with out-of-bounds cell index → graceful ignore ──────
     @testset "apply_diff! ignores out-of-bounds cells" begin
         buf = T.Buffer(T.Rect(1, 1, 2, 2))
 
-        # Create a diff message with an out-of-bounds coordinate
-        diff_msg_json = JSON3.write(T.WireDiffMessage(
-            "diff",
-            "session_123",
-            [T.WireDiffCell(100, 100, T.WireCell("X", T.WireStyle(T.WireColor("none", 0, 0, 0, 0, 255),
-                                                                    T.WireColor("none", 0, 0, 0, 0, 255),
-                                                                    false, false, false, false, false, "")))]
-        ))
+        # Construct a diff message with out-of-bounds coordinates (100,100)
+        # as a literal JSON string — no JSON3 import needed in this file.
+        # WireColor "none" fields: kind,code,r,g,b,a
+        diff_msg_json = """{"type":"diff","session_id":"session_123","cells":[{"x":100,"y":100,"cell":{"char":"X","style":{"fg":{"kind":"none","code":0,"r":0,"g":0,"b":0,"a":255},"bg":{"kind":"none","code":0,"r":0,"g":0,"b":0,"a":255},"bold":false,"dim":false,"italic":false,"underline":false,"strikethrough":false,"hyperlink":""},"suffix":""}}]}"""
 
         # apply_diff! should skip the out-of-bounds cell gracefully
         result = T.apply_diff!(buf, diff_msg_json)
-        @test result === buf  # same buffer
+        @test result === buf  # same buffer object returned
         @test result.content[1].char != 'X'  # not modified
     end
 
-    # ── apply_snapshot then apply_diff! on different session_id → should ignore ──
+    # ── apply_snapshot: fresh session produces snapshot; content preserved ──
     @testset "apply_diff! on decoded snapshot respects content" begin
         buf1 = T.Buffer(T.Rect(1, 1, 2, 2))
         buf1.content[1] = T.Cell('A', T.RESET)
 
+        # New session has last_buffer=nothing → diff_message produces a snapshot.
         s = T.new_session("multi_session_app")
-        s.last_buffer = buf1
+        # Do NOT pre-set last_buffer; let diff_message auto-snapshot.
 
         snap_msg = T.diff_message(s, buf1)
+        @test occursin("\"snapshot\"", snap_msg)
         client_buf = T.apply_snapshot(snap_msg)
         @test client_buf.content[1].char == 'A'
 
