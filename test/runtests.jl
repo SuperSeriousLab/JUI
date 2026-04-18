@@ -13,14 +13,18 @@ struct _DummyModel <: T.Model end
     include("wire_test.jl")
     include("session_test.jl")
     include("protocol_test.jl")
+    include("wire_protocol_edge_test.jl")
     include("integration_test.jl")
     include("frank_absent_test.jl")
+    include("frank_hooks_allocation_test.jl")
     if Base.find_package("FRANK") !== nothing
         include("frank_present_test.jl")
+        include("frank_ext_edge_cases_test.jl")
     else
         @warn "FRANK not in test env — skipping FRANK-present tests (items 4+7). Add FRANK to test/Project.toml to enable."
     end
     include("auth_test.jl")
+    include("auth_edge_test.jl")
     include("transport_unix_test.jl")
     include("transport_tcp_test.jl")
     include("transport_session_test.jl")

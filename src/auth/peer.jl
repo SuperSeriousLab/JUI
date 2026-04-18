@@ -69,7 +69,8 @@ function peer_uid(sock_fd::Cint)::Cint
         if rc == Cint(0)
             return Cint(cred[].uid)
         end
-        errno_val = ccall(:__errno_location, Ptr{Cint}, ())[]
+        errno_ptr = ccall(:__errno_location, Ptr{Cint}, ())
+        errno_val = unsafe_load(errno_ptr)
         error("JUI auth: SO_PEERCRED getsockopt failed (errno=$errno_val) on fd=$sock_fd")
     end
 
