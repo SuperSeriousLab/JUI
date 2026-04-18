@@ -6,6 +6,9 @@ JULIA="/home/js/.local/julia-1.11.5/bin/julia"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Export git environment variables to avoid prompts
+export GIT_TERMINAL_PROMPT=0
+
 # Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -25,7 +28,8 @@ run_isolated() {
     local julia_code="$1"
 
     cd "$tmpdir"
-    JULIA_DEPOT_PATH="$tmpdepot" "$JULIA" --project=. -e "$julia_code"
+    # Redirect stdin from /dev/null to prevent interactive prompts
+    JULIA_DEPOT_PATH="$tmpdepot" "$JULIA" --project=. -e "$julia_code" < /dev/null
     local exit_code=$?
 
     cd / && rm -rf "$tmpdir" "$tmpdepot"
