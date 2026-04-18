@@ -66,6 +66,7 @@ mutable struct Session
     created_at::Float64
     last_activity::Float64
     injectors::Vector{Function}       # Phase 3: handlers called by inject_input
+    geometry::Ref{Rect}              # current client terminal size (updated via WireResizeEvent)
 end
 
 # ── Registry ──────────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ return the Session. Thread-safe.
 function new_session(app)::Session
     id  = SessionID(randstring(['0':'9'; 'a':'f'], 32))
     now = time()
-    s   = Session(id, app, nothing, now, now, Function[])
+    s   = Session(id, app, nothing, now, now, Function[], Ref(Rect(1, 1, 80, 24)))
     lock(SESSIONS_LOCK) do
         SESSIONS[id] = s
     end

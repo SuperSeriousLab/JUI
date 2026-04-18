@@ -190,7 +190,14 @@ function _apply_event_to_session!(session::Session, evt)
             @warn "JUI session_pump: update! error" exception=(e, catch_backtrace())
         end
     end
-    # WireResizeEvent: terminal resize — deferred to Phase 4
+    if evt isa WireResizeEvent && evt.cols > 0 && evt.rows > 0
+        session.geometry[] = Rect(1, 1, evt.cols, evt.rows)
+        session.last_buffer = nothing  # force full snapshot at new size
+        try
+            update!(model, evt)  # let model resize TerminalWidget or other state
+        catch
+        end
+    end
     nothing
 end
 
@@ -408,11 +415,12 @@ JUI.close_session!(srv.session.id)
 function run_tcp!(model::Model, host::String, port::Int, token::String;
                   fps::Int = 60, cols::Int = 80, rows::Int = 24)::SessionServer
     session = new_session(model)
-    rect    = Rect(1, 1, cols, rows)
+    session.geometry[] = Rect(1, 1, cols, rows)
 
     render_fn = function (sess::Session)
-        buf = Buffer(rect)
-        f   = Frame(buf, rect, GraphicsRegion[], PixelSnapshot[])
+        rect = sess.geometry[]
+        buf  = Buffer(rect)
+        f    = Frame(buf, rect, GraphicsRegion[], PixelSnapshot[])
         Base.invokelatest(view, sess.app, f)
         buf
     end

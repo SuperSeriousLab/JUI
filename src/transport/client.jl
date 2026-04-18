@@ -22,6 +22,11 @@ import JSON3
 
 export run_client
 
+function _send_resize(ssl, rows::Int, cols::Int)
+    msg = JSON3.write(WireInputMessage("input", "", encode_input(WireResizeEvent(rows, cols)))) * "\n"
+    try; write(ssl, msg); catch; end
+end
+
 # Copy all cells from src into dst. Both must have the same area dimensions.
 function _copy_buf!(dst::Buffer, src::Buffer)
     n = min(length(dst.content), length(src.content))
@@ -57,7 +62,10 @@ function run_client(host::String, port::Int, token::String;
     # Auth + TLS
     ssl = connect_tcp(host, port, token)
 
-    # Read initial snapshot
+    # Send client terminal size immediately — server adapts its render rect
+    _send_resize(ssl, rows, cols)
+
+    # Read initial snapshot (server re-renders at client size before sending)
     snap_line = _ssl_readline(ssl)
     if isempty(snap_line)
         try; close(ssl); catch; end
@@ -65,7 +73,7 @@ function run_client(host::String, port::Int, token::String;
     end
     client_buf = apply_snapshot(snap_line)
 
-    # If server's buffer is a different size, use it as the canonical size
+    # Use server's buffer dimensions (reflects the resize we just sent)
     cols = client_buf.area.width
     rows = client_buf.area.height
 
@@ -109,12 +117,27 @@ function run_client(host::String, port::Int, token::String;
         end
     end
 
+    # SIGWINCH: forward terminal resize to server
+    Base.Sys.iswindows() || Base.signal_handle(Base.SIGWINCH) do
+        sz = terminal_size()
+        _send_resize(ssl, sz.rows, sz.cols)
+    end
+
     # Diff receive loop: apply diffs, repaint
     try
         while isopen(ssl) && !isready(quit_ch)
             line = _ssl_readline(ssl)
             isempty(line) && break
             client_buf = apply_diff!(client_buf, line)
+            # Resize local terminal object if server sent a new snapshot at new size
+            new_cols = client_buf.area.width
+            new_rows = client_buf.area.height
+            if new_cols != cols || new_rows != rows
+                cols = new_cols
+                rows = new_rows
+                t = Terminal(; io, size=(rows=rows, cols=cols))
+                print(io, CLEAR_SCREEN)
+            end
             _copy_buf!(current_buf(t), client_buf)
             print(io, SYNC_START)
             flush!(t, io)

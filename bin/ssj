@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# ssj — JUI terminal transport (SSH replacement)
+#
+# Usage:
+#   ssj host                      # connect on default port 7878
+#   ssj host:port                 # connect on custom port
+#   ssj user@host                 # SSH as user (for token fetch only)
+#   ssj user@host:port
+#   ssj host --refresh            # force re-fetch token from server
+#   ssj host --token TOKEN        # use explicit token (skip SSH fetch)
+#
+# First connect: SSH to host to read ~/.config/jui/token, cache it locally.
+# Subsequent connects: use cached token directly (no SSH).
+# Session persists on server — disconnect and reconnect anytime.
+
+set -euo pipefail
+
+JULIA="${JUI_JULIA:-julia}"
+JUI_PROJECT="${JUI_PROJECT:-}"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ssj"
+mkdir -p "$CONFIG_DIR"
+
+# ── Parse arguments ──────────────────────────────────────────────────────
+HOST_ARG="${1:-}"
+[ -z "$HOST_ARG" ] && { echo "Usage: ssj [user@]host[:port] [--refresh] [--token TOKEN]"; exit 1; }
+shift
+
+REFRESH=0
+EXPLICIT_TOKEN=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --refresh) REFRESH=1; shift ;;
+        --token)   EXPLICIT_TOKEN="$2"; shift 2 ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
+# Parse user@host:port
+SSH_USER=""
+if [[ "$HOST_ARG" == *@* ]]; then
+    SSH_USER="${HOST_ARG%%@*}@"
+    HOST_ARG="${HOST_ARG#*@}"
+fi
+
+PORT=7878
+if [[ "$HOST_ARG" == *:* ]]; then
+    PORT="${HOST_ARG##*:}"
+    HOST_ARG="${HOST_ARG%:*}"
+fi
+
+HOST="$HOST_ARG"
+SAFE_HOST="${SSH_USER//@/_}${HOST//./_}_${PORT}"
+TOKEN_CACHE="$CONFIG_DIR/${SAFE_HOST}.token"
+
+# ── Get token ────────────────────────────────────────────────────────────
+if [ -n "$EXPLICIT_TOKEN" ]; then
+    TOKEN="$EXPLICIT_TOKEN"
+elif [ "$REFRESH" -eq 1 ] || [ ! -f "$TOKEN_CACHE" ]; then
+    echo "ssj: fetching token from ${SSH_USER}${HOST}..." >&2
+    TOKEN=$(ssh "${SSH_USER}${HOST}" "cat ~/.config/jui/token 2>/dev/null || cat ~/.jui-token 2>/dev/null" 2>/dev/null)
+    if [ -z "$TOKEN" ]; then
+        echo "ssj: ERROR — could not get JUI token from ${HOST}." >&2
+        echo "     Is jui-server running? Start it with: julia jui-server.jl" >&2
+        exit 1
+    fi
+    printf '%s' "$TOKEN" > "$TOKEN_CACHE"
+    chmod 600 "$TOKEN_CACHE"
+    echo "ssj: token cached at $TOKEN_CACHE" >&2
+else
+    TOKEN=$(cat "$TOKEN_CACHE")
+fi
+
+# ── Build Julia command ───────────────────────────────────────────────────
+ACTIVATE=""
+if [ -n "$JUI_PROJECT" ]; then
+    ACTIVATE="import Pkg; Pkg.activate(\"$JUI_PROJECT\"); "
+fi
+
+# ── Connect ───────────────────────────────────────────────────────────────
+echo "ssj: connecting to ${HOST}:${PORT}..." >&2
+exec "$JULIA" -e "
+${ACTIVATE}using JUI
+try
+    JUI.run_client(\"${HOST}\", ${PORT}, \"${TOKEN}\")
+catch e
+    if e isa JUI.AuthError && occursin(\"SPKI pin mismatch\", string(e))
+        println(stderr, \"ssj: SPKI mismatch — server cert changed.\")
+        println(stderr, \"     Run: ssj ${HOST_ARG}:${PORT} --refresh to re-pin.\")
+        exit(2)
+    elseif e isa JUI.AuthError
+        println(stderr, \"ssj: auth failed — \", e)
+        println(stderr, \"     Token may be stale. Run: ssj ${HOST_ARG}:${PORT} --refresh\")
+        exit(3)
+    end
+    rethrow()
+end
+"
