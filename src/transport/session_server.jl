@@ -93,7 +93,9 @@ Protocol:
 function _session_pump(srv::SessionServer, io, render_fn::Function)
     session = srv.session
 
-    # Step 1: initial snapshot
+    # Step 1: initial snapshot — reset last_buffer so reconnecting clients
+    # always receive a full snapshot, not a diff from a previous connection.
+    session.last_buffer = nothing
     try
         buf_init = render_fn(session)
         snap_str = diff_message(session, buf_init)  # first call → snapshot

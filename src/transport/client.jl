@@ -23,7 +23,7 @@ import JSON3
 export run_client
 
 function _send_resize(ssl, rows::Int, cols::Int)
-    msg = JSON3.write(WireInputMessage("input", "", encode_input(WireResizeEvent(rows, cols)))) * "\n"
+    msg = JSON3.write(WireInputMessage("input", "", encode_input(WireResizeEvent("resize", cols, rows)))) * "\n"
     try; write(ssl, msg); catch; end
 end
 

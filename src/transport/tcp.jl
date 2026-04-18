@@ -478,7 +478,7 @@ to the Julia scheduler between reads.
 Returns the line content WITHOUT the trailing newline.
 Returns `""` on EOF (connection closed before newline).
 """
-function _ssl_readline(ctx::MbedTLS.SSLContext; maxbytes::Int = 1_048_576)::String
+function _ssl_readline(ctx::MbedTLS.SSLContext; maxbytes::Int = 8_388_608)::String
     buf = UInt8[]
     while length(buf) < maxbytes
         b = try

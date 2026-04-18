@@ -63,7 +63,7 @@ mkpath(dirname(token_file))
 
 # Reuse existing token if present (stable across restarts → ssj cache stays valid)
 token = if isfile(token_file)
-    strip(read(token_file, String))
+    String(strip(read(token_file, String)))
 else
     t = JUI.generate_token()
     write(token_file, t)
