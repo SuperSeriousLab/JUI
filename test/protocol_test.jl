@@ -1,10 +1,7 @@
 # Copyright 2026 Super Serious Studios
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# MIT License
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # ── protocol_test.jl ─────────────────────────────────────────────────────
 # Phase 2a: Snapshot / diff / input message protocol tests.

@@ -4,7 +4,7 @@
 
 ### Fork + Server-Authoritative Architecture
 
-- **Hard fork of Tachikoma.jl** (commit 2271069) as rendering substrate (MIT → Apache 2.0 additions). Full attribution in NOTICE + LICENSE-MIT.
+- **Hard fork of Tachikoma.jl** (commit 2271069) as rendering substrate. Full attribution in NOTICE.
 - **Wire protocol**: serializable Buffer (cell grid) + InputEvents via JSON3. Buffer is a pure `Cell` grid — no widget serialization required.
 - **Session registry**: `SessionID → server-side App + last_buffer`. Sessions are opaque UUIDs assigned at connect time.
 - **Snapshot + cell-diff protocol**: server-authoritative, client is a dumb renderer. Snapshot on attach, diffs on subsequent frames.

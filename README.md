@@ -26,7 +26,7 @@ inspect, drive, and debug — across a network boundary if needed.
   (0.69× vs raw TCP loopback — Unix socket is faster)
 - **Zero overhead** when FRANK is absent (`@inline` no-op hooks, 0 bytes
   allocated on hot path)
-- **Apache 2.0** (JUI additions) + MIT (Tachikoma substrate)
+- **MIT License**
 
 ## Install and Test Yourself
 
@@ -154,7 +154,7 @@ For remote TCP sessions with TLS + bearer token + SPKI TOFU, see
   │ Kitty/sixel       │               │     │ Auth + SPKI    │
   └───────────┘       └───────────────┘     │ Agent attach   │
    MIT, preserved     MIT, preserved         └────────────────┘
-                                               Apache 2.0, new
+                                               MIT, new
 ```
 
 ## Wire Protocol (ET-Transport)
@@ -199,12 +199,10 @@ entirely). Well below the 2× overhead budget.
 ## Fork History + License
 
 JUI is a **hard fork** of Tachikoma.jl @ `2271069`, forked 2026-04-17.
+MIT License © 2026 Super Serious Studios.
 
-- **Tachikoma substrate**: MIT (Kahli Burke). See `LICENSE-MIT`. All
-  files originating from Tachikoma retain their MIT copyright headers.
-- **JUI additions** (FRANK hooks, ET-Transport, auth, wire protocol):
-  Apache-2.0. See `LICENSE`.
-- Full attribution in `NOTICE`.
+Tachikoma.jl is © Kahli Burke (MIT). All files originating from Tachikoma
+retain their original MIT copyright headers. Full attribution in `NOTICE`.
 
 ## Project Status
 
