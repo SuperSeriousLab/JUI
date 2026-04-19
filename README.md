@@ -19,6 +19,10 @@ graphics, recording/export, TestBackend — is preserved. JUI adds:
 Think of it as: a rich TUI framework that an AI agent can attach to,
 inspect, drive, and debug — across a network boundary if needed.
 
+<p align="center">
+  <img src="docs/assets/demo.svg" alt="JUI demo — counter app with FRANK agent attach" width="800">
+</p>
+
 ## At a glance
 
 - **5856 tests** passing (2 pre-existing env-dependent kitty graphics probes)
