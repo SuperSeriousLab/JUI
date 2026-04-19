@@ -20,7 +20,10 @@ Think of it as: a rich TUI framework that an AI agent can attach to,
 inspect, drive, and debug — across a network boundary if needed.
 
 <p align="center">
-  <img src="docs/assets/demo.svg" alt="JUI demo — counter app with FRANK agent attach" width="800">
+  <img src="docs/assets/jui_demo1.png" alt="JUI — counter app with widget library and ET-Transport status" width="800">
+</p>
+<p align="center">
+  <img src="docs/assets/jui_demo2.png" alt="JUI — FRANK agent attached, live event stream" width="800">
 </p>
 
 ## At a glance
