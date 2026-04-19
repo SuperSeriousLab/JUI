@@ -1,0 +1,145 @@
+project: JUI
+description: "AI-first Julia TUI framework — hard fork of Tachikoma.jl substrate + ET always-on, FRANK orthogonal diagnostics. Single build: Unix socket (local) + TCP (remote), zero mode switch."
+design_note: |
+  Server-authoritative architecture (ET/mosh/tmux pattern). Widgets live
+  server-side only. Client = cell renderer + keystroke pipe. Wire carries
+  Buffer snapshot + cell diffs down, InputEvents up. No widget serialization.
+  Decided 2026-04-17 after Opus consult — rejected Elm-import of "pure AppState
+  struct" as architectural misfit with Tachikoma's stateful-widget design.
+
+phase-2b_note: |
+  Phase 2b closed 2026-04-17 after audit. Renderer was already decoupled
+  by Tachikoma's design. Predictive local echo deferred to post-Phase 3.
+
+phases:
+  - id: phase-1
+    name: "Phase 1: Tachikoma.jl Hard Fork — Baseline Substrate"
+    status: completed
+    depends_on: []
+    items:
+      - name: "Hard fork Tachikoma.jl @ 2271069 as JUI v0.2.0 (2026-04-17)"
+        done: true
+      - name: "Module rename: Tachikoma → JUI throughout src/, test/, ext/"
+        done: true
+      - name: "Project.toml: name=JUI, uuid=a3b5c7d9-e1f2-4a6b-8c0d-2e4f6a8b0c1d, version=0.2.0"
+        done: true
+      - name: "NOTICE + LICENSE-MIT added (full attribution, dual-license clarity)"
+        done: true
+      - name: "All Tachikoma ext modules renamed: JUIColorTypesExt, JUIGifExt, JUIMarkdownExt, JUISQLiteExt, JUITablesExt"
+        done: true
+      - name: "CLAUDE.md updated to reflect Tachikoma-fork origin"
+        done: true
+      - name: "Forgejo repo created (http://192.168.14.77:3000/eidos/JUI)"
+        done: true
+      - name: "Baseline substrate: cell-grid renderer, layout solver, 30+ widgets, TaskQueue, TestBackend, animation, sixel/kitty graphics"
+        done: true
+
+  - id: phase-2a
+    name: "Phase 2a: Wire Protocol — Serializable Buffer + Input Events"
+    status: completed
+    depends_on: [phase-1]
+    items:
+      - name: "Serializable Buffer wire format (JSON3 StructType or msgpack, ~20 LOC — Buffer is already pure Cell grid)"
+        done: true
+      - name: "Serializable InputEvent types (KeyEvent, MouseEvent, Resize)"
+        done: true
+      - name: "Session registry: SessionID → server-side App instance + last Buffer"
+        done: true
+      - name: "Snapshot-on-attach + cell-diff-stream protocol spec"
+        done: true
+      - name: "Server-authoritative model: widgets never leave server, client holds zero widget state"
+        done: true
+      - name: "Round-trip test: local client sends key → server processes → new Buffer diff → client renders"
+        done: true
+
+  - id: phase-2b
+    name: "Phase 2b: Renderer Decoupling (verified complete via Tachikoma fork)"
+    status: completed
+    depends_on: [phase-2a]
+    items:
+      - name: "Renderer accepts Writer parameter (flush!(terminal, io::IO)) — inherited from Tachikoma"
+        done: true
+      - name: "Zero stdout calls in render path — verified by audit; 2 stdout refs in _detect_cell_pixels_escape! are intentional TTY capability probe exceptions"
+        done: true
+      - name: "Widget render() methods write to pure Buffer, no IO side effects — inherited from Tachikoma"
+        done: true
+      - name: "TestBackend enables TTY-free testing — 30+ call sites in existing test suite"
+        done: true
+      - name: "Predictive local echo (mosh-style) DEFERRED to post-Phase-3 — optimization requires real WAN latency measurement from ET-transport"
+        done: true
+
+  - id: phase-2c
+    name: "Phase 2c: FRANK Optional Weak Dep + Agent Attach Hooks"
+    status: completed
+    depends_on: [phase-2b]
+    items:
+      - name: "FRANK is a separate Forgejo repo (eidos/FRANK) — prerequisite"
+        done: true
+      - name: "Add FRANK as optional weak dep via Julia 1.9+ package extension ([weakdeps] + JUIFRANKExt)"
+        done: true
+      - name: "JUI works identically when FRANK is NOT loaded (no crash, no no-op overhead in hot path)"
+        done: true
+      - name: "Session lifecycle events emit FRANK JSONL when FRANK is loaded: session_create, session_close, input_received, diff_emitted, snapshot_sent"
+        done: true
+      - name: "Agent attach API: third-party agent can subscribe to FRANK event stream for a given SessionID"
+        done: true
+      - name: "Event schema: FRANK v0.1 JSON schema extended with JUI-specific event types"
+        done: true
+      - name: "Tests: FRANK-loaded path (events emit correctly) + FRANK-absent path (zero mentions, no errors)"
+        done: true
+      - name: "Docs: how to enable FRANK in a JUI consumer app (1-page integration guide)"
+        done: true
+
+  - id: phase-3
+    name: "Phase 3: ET-Transport (Unix Socket Local + TCP Remote, Single Build)"
+    status: completed
+    depends_on: [phase-2c]
+    items:
+      - name: "ET-transport always ON — single build, no mode switch"
+        done: true
+      - name: "Transport abstraction: Unix socket for local, TCP for remote"
+        done: true
+      - name: "SessionID + AppState snapshot on connect (framebuffer diff for reconnect)"
+        done: true
+      - name: "Event-replay optional (framebuffer diff preferred for ET)"
+        done: true
+      - name: "run!() spawns server + local client automatically"
+        done: true
+      - name: "Remote: swap Transport URL, user API identical"
+        done: true
+      - name: "Zero overhead for local (Unix socket vs stdlib TCPSocket comparison) — bench/local_overhead.jl: Unix 9.2µs p50 vs TCP 13.3µs p50, ratio 0.69x (Unix faster, 2026-04-17)"
+        done: true
+      - name: "Integration tests: local and remote modes"
+        done: true
+      - name: "[SECURITY] Auth model design gate — must be specified before Phase 3 impl starts"
+        done: true
+      - name: "[SECURITY chunk-1] Auth module infrastructure: src/auth/ (paths, peer, token, AuthGate, tls-stub) + 39 tests (2026-04-17)"
+        done: true
+      - name: "[SECURITY chunk-3a] Unix socket transport: chmod 600 + peer UID gate (SO_PEERCRED) + FRANK auth.ok/auth.reject events + 7 tests (2026-04-18)"
+        done: true
+      - name: "[SECURITY] TCP transport: token auth (bearer) minimum; mTLS preferred — no unauthenticated TCP binding"
+        done: true
+      - name: "[SECURITY chunk-3b] TCP+TLS transport: bearer token + SPKI TOFU + deny-by-default + FRANK auth.ok/auth.reject events + 8 tests (2026-04-18). mTLS deferred per §10 — bearer+SPKI is Phase 3 impl. TLS lib: MbedTLS.jl (RSA-2048 certs; ed25519 unsupported by MbedTLS 2.x). Gotcha: readline() hangs on SSLContext — use _ssl_readline() (read-1-byte loop)."
+        done: true
+      - name: "[SECURITY chunk-3c] Session protocol wiring: SessionServer + start_session_unix/tcp_server + run_et!/run_tcp! + 34 tests (2026-04-18). Gotcha: _ssl_readline maxbytes must be >= snapshot size (14KB for 20x3 buffer — raised to 1MB)."
+        done: true
+      - name: "[SECURITY] FRANK attach point: attach_agent mode gate (:observe/:interact) + inject_input gated on :interact + register_input_handler! + 4 new tests (2026-04-17)"
+        done: true
+
+  - id: phase-4
+    name: "Phase 4: eidos Julia Registry Publish"
+    status: completed
+    depends_on: [phase-3]
+    items:
+      - name: "Register FRANK package in eidos Forgejo Julia registry"
+        done: true
+      - name: "Register JUI package in eidos Forgejo Julia registry"
+        done: true
+      - name: "Update Project.toml registry entries"
+        done: true
+      - name: "Usage docs: quick-start example app with ET sessions"
+        done: true
+      - name: "CHANGELOG.md v0.2.0 for FRANK and JUI"
+        done: true
+      - name: "Validate: Pkg.add(\"FRANK\") and Pkg.add(\"JUI\") work from clean env via eidos registry"
+        done: true

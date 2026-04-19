@@ -1,0 +1,14 @@
+[Unit]
+Description=JUI Terminal Server
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+Environment=JUI_PORT=7878
+ExecStart=/home/js/.local/julia-1.11.5/bin/julia /home/js/eidos/JUI/bin/jui-server.jl
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

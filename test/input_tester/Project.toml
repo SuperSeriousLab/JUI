@@ -1,0 +1,11 @@
+name = "InputTester"
+uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+version = "0.1.0"
+
+[deps]
+MCPRepl = "b62cb57a-788d-40b5-9d64-84a1dfc37ce3"
+JUI = "a3b5c7d9-e1f2-4a6b-8c0d-2e4f6a8b0c1d"
+
+[sources]
+MCPRepl = {path = "../../../../.julia/dev/MCPRepl"}
+JUI = {path = "../.."}

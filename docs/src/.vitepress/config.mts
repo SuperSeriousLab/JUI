@@ -1,0 +1,131 @@
+import { defineConfig } from 'vitepress'
+import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
+import { tachiExamplesPlugin } from './tachi-examples'
+import { tachiAutolinkPlugin } from './tachi-autolink'
+
+const BASE = '/Tachikoma.jl/'
+const IS_VITEPRESS_DEV = process.env.npm_lifecycle_event === 'docs:dev' || process.argv.includes('dev')
+const VITEPRESS_BASE = IS_VITEPRESS_DEV ? '/' : BASE
+const ASSET_BASE = process.env.TACHIKOMA_ASSET_BASE || (IS_VITEPRESS_DEV ? '/assets/' : VITEPRESS_BASE + 'assets/')
+
+export default defineConfig({
+  base: VITEPRESS_BASE,
+  title: 'Tachikoma.jl',
+  description: 'Terminal UI framework for Julia',
+  lastUpdated: true,
+  cleanUrls: true,
+
+  vite: {
+    define: {
+      __ASSET_BASE__: JSON.stringify(ASSET_BASE),
+    },
+    vue: {
+      template: {
+        transformAssetUrls: {
+          includeAbsolute: false,
+        },
+      },
+    },
+    build: {
+      rollupOptions: {
+        external: [/^\/assets\//, /^\/Tachikoma\.jl\/assets\//],
+      },
+    },
+  },
+
+  markdown: {
+    config(md) {
+      md.use(tabsMarkdownPlugin)
+      md.use(tachiExamplesPlugin, ASSET_BASE)
+      md.use(tachiAutolinkPlugin)
+    },
+  },
+
+  themeConfig: {
+    nav: [
+      { text: 'Guide', link: '/getting-started' },
+      { text: 'Widgets', link: '/widgets' },
+      { text: 'API', link: '/api' },
+    ],
+
+    sidebar: [
+      {
+        text: 'Introduction',
+        items: [
+          { text: 'Installation', link: '/installation' },
+          { text: 'Getting Started', link: '/getting-started' },
+          { text: 'Architecture', link: '/architecture' },
+        ],
+      },
+      {
+        text: 'Core Concepts',
+        items: [
+          { text: 'Layout', link: '/layout' },
+          { text: 'Styling & Themes', link: '/styling' },
+          { text: 'Input & Events', link: '/events' },
+          { text: 'Pattern Matching', link: '/match' },
+          { text: 'Async Tasks', link: '/async' },
+          { text: 'Preferences', link: '/preferences' },
+        ],
+      },
+      {
+        text: 'Widgets & Graphics',
+        items: [
+          { text: 'Widgets', link: '/widgets' },
+          { text: 'PagedDataTable', link: '/paged-datatable' },
+          { text: 'Window Manager', link: '/window-manager' },
+          { text: 'Terminal & REPL', link: '/terminal-repl' },
+          { text: 'Graphics & Pixel Rendering', link: '/canvas' },
+          { text: 'Animation', link: '/animation' },
+          { text: 'Backgrounds', link: '/backgrounds' },
+        ],
+      },
+      {
+        text: 'Advanced',
+        items: [
+          { text: 'Performance', link: '/performance' },
+          { text: 'Recording & Export', link: '/recording' },
+          { text: 'Scripting Interactions', link: '/scripting' },
+          { text: 'Compiled Binaries', link: '/juliac' },
+          { text: 'Testing', link: '/testing' },
+        ],
+      },
+      {
+        text: 'Tutorials',
+        items: [
+          { text: 'Getting Started', link: '/getting-started' },
+          { text: 'Game of Life', link: '/tutorials/game-of-life' },
+          { text: 'Build a Form', link: '/tutorials/form-app' },
+          { text: 'Build a Dashboard', link: '/tutorials/dashboard' },
+          { text: 'Animation Showcase', link: '/tutorials/animation-showcase' },
+          { text: 'Todo List', link: '/tutorials/todo-list' },
+          { text: 'GitHub PR Viewer', link: '/tutorials/github-prs' },
+          { text: 'Constraint Explorer', link: '/tutorials/constraint-explorer' },
+        ],
+      },
+      {
+        text: 'Reference',
+        items: [
+          { text: 'Demos', link: '/demos' },
+          { text: 'API Reference', link: '/api' },
+          { text: 'Comparison', link: '/comparison' },
+        ],
+      },
+    ],
+
+    outline: {
+      level: [2, 3],
+    },
+
+    search: {
+      provider: 'local',
+    },
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/kahliburke/Tachikoma.jl' },
+    ],
+    footer: {
+      message: 'Made with <a href="https://documenter.juliadocs.org/stable/">Documenter.jl</a> and <a href="https://vitepress.dev">VitePress</a>',
+      copyright: 'Copyright © 2025-present',
+    },
+  },
+})

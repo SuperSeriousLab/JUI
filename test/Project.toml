@@ -1,0 +1,18 @@
+# Test environment for JUI.
+# Julia 1.11+ uses this as the complete test-env specification when present.
+# Must include all deps that test/runtests.jl (and included files) use.
+# FRANK is declared here so JUIFRANKExt loads during test runs (FRANK-present path).
+
+[deps]
+Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+ColorTypes = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
+CommonMark = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
+FRANK = "f7a4e1b0-d8c2-4a3e-b5f1-0c9d2e8a7b6c"
+FreeTypeAbstraction = "663a7486-cb36-511b-a19d-713bb74d65c9"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+Supposition = "5a0628fe-1738-4658-9b6d-0b7605a9755b"
+Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[sources]
+FRANK = {url = "https://github.com/SuperSeriousLab/FRANK.git", rev = "v0.2.0"}

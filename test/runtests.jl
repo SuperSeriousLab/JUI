@@ -1,0 +1,56 @@
+using Test
+using JUI
+using JUI.Paged
+using Base64: base64decode
+using Supposition, Supposition.Data
+
+const T = JUI
+
+# Dummy model for handle_default_binding! tests
+struct _DummyModel <: T.Model end
+
+@testset "JUI" begin
+    include("wire_test.jl")
+    include("session_test.jl")
+    include("protocol_test.jl")
+    include("wire_protocol_edge_test.jl")
+    include("integration_test.jl")
+    include("frank_absent_test.jl")
+    include("frank_hooks_allocation_test.jl")
+    if Base.find_package("FRANK") !== nothing
+        include("frank_present_test.jl")
+        include("frank_ext_edge_cases_test.jl")
+    else
+        @warn "FRANK not in test env — skipping FRANK-present tests (items 4+7). Add FRANK to test/Project.toml to enable."
+    end
+    include("auth_test.jl")
+    include("auth_edge_test.jl")
+    include("transport_unix_test.jl")
+    include("transport_tcp_test.jl")
+    include("transport_session_test.jl")
+    include("test_core.jl")
+    include("test_events.jl")
+    include("test_colors.jl")
+    include("test_sixel.jl")
+    include("test_kitty_graphics.jl")
+    include("test_layout.jl")
+    include("test_pbt.jl")
+    include("test_widgets_extended.jl")
+    include("test_codeeditor.jl")
+    include("test_backgrounds.jl")
+    include("test_recording.jl")
+    include("test_async.jl")
+    include("test_markdown.jl")
+    include("test_widgets_coverage.jl")
+    include("test_scripting.jl")
+    include("test_animation.jl")
+    include("test_tokenizers.jl")
+    include("test_style.jl")
+    include("test_ccall_safety.jl")
+    include("test_floating_window.jl")
+    include("test_terminal_widget.jl")
+    include("test_paged_datatable.jl")
+    include("test_ansitext.jl")
+    include("test_app_error.jl")
+    include("test_demos_load.jl")
+end
