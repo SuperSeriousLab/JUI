@@ -53,29 +53,19 @@ Pkg.add(["JUI", "FRANK"])
 
 ### Verify your install
 
-One command, three scenarios (FRANK-only, JUI+FRANK with extension
-activation, JUI-solo with FRANK correctly absent):
-
-```bash
-git clone https://github.com/SuperSeriousLab/JUI
-cd JUI
-./scripts/validate-registry-install.sh
+```julia
+julia -e "using JUI; println(\"JUI $(pkgversion(JUI)) loaded OK\")"
 ```
-
-Expected: `=== All scenarios passed ===` after ~3 minutes of first-time
-precompilation. The script uses throwaway depots — it does not pollute
-your existing Julia environment.
 
 ### Run the test suite (optional)
 
 ```bash
-cd JUI
-julia --project=. -e "using Pkg; Pkg.resolve(); Pkg.test()"
+git clone https://github.com/SuperSeriousLab/JUI && cd JUI
+julia --project=. -e "using Pkg; Pkg.test()"
 ```
 
-Expected: `5856 passed, 2 failed, 2 broken` where the 2 failures are
-`_kitty_shm_probe!` tests that require a Kitty-protocol-capable terminal
-(absent in typical CI/dev environments).
+Expected: 5856 passed. Two `_kitty_shm_probe!` tests require a
+Kitty-capable terminal and are skipped in standard environments.
 
 ## Minimal app
 
@@ -170,18 +160,37 @@ renderer + keystroke pipe.
 All messages are newline-delimited JSON via `JSON3.StructType`. Full spec
 in [`docs/wire-protocol.md`](docs/wire-protocol.md).
 
-## Auth model (Phase 3)
+## Remote access — `ssj`
 
-- **Unix socket** — `chmod 0600` + `getpeereid`/`SO_PEERCRED` peer UID
-  check. Socket at `$XDG_RUNTIME_DIR/jui/$SESSION.sock`.
-- **TCP** — TLS 1.3 (self-signed ed25519, SPKI TOFU pin) + session-bound
-  bearer token, one-shot handshake. Deny-by-default: server refuses to
-  bind without cert+token ready.
-- **Agent attach** — in-process only in Phase 3; capability model stubbed
-  (`:observe` default, `:interact` gates `inject_input`).
+`ssj` is the included client command. It SSH-fetches a bearer token once,
+caches it, then connects via TCP+TLS:
 
-Full spec and threat model in
-[`docs/phase-3-auth-design.md`](docs/phase-3-auth-design.md).
+```bash
+# Linux/macOS (bin/ssj — add to PATH)
+ssj user@myserver.example.com
+
+# Windows PowerShell (bin/ssj.ps1)
+.\ssj.ps1 user@myserver.example.com
+
+# Custom port
+ssj myserver.example.com:9000
+
+# Force token refresh
+ssj myserver.example.com --refresh
+```
+
+On first connect, `ssj` runs `ssh user@host cat ~/.config/jui/token` and
+caches the result locally. Subsequent connects use the cache — no SSH needed.
+
+## Auth model
+
+- **Unix socket** — `chmod 0600` + peer UID check (`SO_PEERCRED`/`getpeereid`).
+  Socket at `$XDG_RUNTIME_DIR/jui/$SESSION.sock`.
+- **TCP** — TLS 1.3 (self-signed cert, SPKI TOFU pin) + session-bound
+  bearer token. Deny-by-default: server refuses to bind without cert+token.
+- **Agent attach** — `:observe` (read-only) or `:interact` (enables `inject_input`).
+
+Full threat model: [`docs/phase-3-auth-design.md`](docs/phase-3-auth-design.md).
 
 ## Performance
 
@@ -203,19 +212,6 @@ MIT License © 2026 Super Serious Studios.
 
 Tachikoma.jl is © Kahli Burke (MIT). All files originating from Tachikoma
 retain their original MIT copyright headers. Full attribution in `NOTICE`.
-
-## Project Status
-
-| Phase | Name | Status |
-|-------|------|--------|
-| 1 | Tachikoma hard fork baseline | ✅ complete |
-| 2a | Wire protocol (Buffer + InputEvent) | ✅ complete |
-| 2b | Renderer decoupled (inherited from fork) | ✅ complete |
-| 2c | FRANK optional weak dep + agent attach | ✅ complete |
-| 3 | ET-Transport (Unix + TCP+TLS, auth) | ✅ complete |
-| 4 | Julia registry publish | ✅ complete |
-
-`ROADMAP.yaml` is the machine-readable source of truth.
 
 ## Documentation
 
