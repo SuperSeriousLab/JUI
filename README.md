@@ -192,6 +192,48 @@ caches the result locally. Subsequent connects use the cache — no SSH needed.
 
 Full threat model: [`docs/phase-3-auth-design.md`](docs/phase-3-auth-design.md).
 
+## Widget Library
+
+35 built-in widgets inherited from the Tachikoma substrate:
+
+| Widget | Description |
+|--------|-------------|
+| `Block` | Bordered container with optional title |
+| `Paragraph` | Scrollable text with word-wrap |
+| `List` | Selectable item list |
+| `Table` | Multi-column data table |
+| `DataTable` | Sortable/filterable data table |
+| `PagedDataTable` | Paginated data table |
+| `BarChart` | Horizontal/vertical bar chart |
+| `Chart` | Line/area chart |
+| `Sparkline` | Inline mini chart |
+| `Gauge` | Progress gauge with label |
+| `ProgressList` | List with per-item progress bars |
+| `Tabs` | Tab bar navigation |
+| `TextInput` | Single-line text input |
+| `TextArea` | Multi-line text editor |
+| `CodeEditor` | Syntax-highlighted code editor |
+| `Button` | Clickable button |
+| `Checkbox` | Toggle checkbox |
+| `Dropdown` | Select/dropdown menu |
+| `Form` | Composite form layout |
+| `Modal` | Overlay modal dialog |
+| `FloatingWindow` | Draggable floating panel |
+| `WindowManager` | Multi-window tiling manager |
+| `ScrollPane` | Scrollable container |
+| `Scrollbar` | Standalone scrollbar |
+| `Separator` | Horizontal/vertical divider |
+| `StatusBar` | Bottom status line |
+| `BigText` | Large ASCII-art text |
+| `Canvas` | Free-draw pixel canvas |
+| `BlockCanvas` | Block-element canvas |
+| `ANSIText` | Raw ANSI escape sequence renderer |
+| `MarkdownPane` | Rendered Markdown viewer |
+| `TreeView` | Collapsible tree |
+| `Calendar` | Month calendar |
+| `TerminalWidget` | Embedded terminal emulator |
+| `REPLWidget` | Embedded Julia REPL |
+
 ## Performance
 
 Measured on a single host (`bench/local_overhead.jl`, 1000 round-trips,
